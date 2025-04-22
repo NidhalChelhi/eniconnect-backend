@@ -1,53 +1,54 @@
 package tn.enicarthage.eniconnect_backend.controllers;
 
-import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import tn.enicarthage.eniconnect_backend.abstracts.StudentService;
-import tn.enicarthage.eniconnect_backend.dtos.StudentCreate;
-import tn.enicarthage.eniconnect_backend.dtos.StudentUpdate;
-import tn.enicarthage.eniconnect_backend.entities.Student;
+import tn.enicarthage.eniconnect_backend.dtos.base.CourseDTO;
+import tn.enicarthage.eniconnect_backend.dtos.base.StudentDTO;
+import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyDTO;
+import tn.enicarthage.eniconnect_backend.security.UserPrincipal;
+import tn.enicarthage.eniconnect_backend.services.StudentService;
 
 import java.util.List;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/students")
 @RequiredArgsConstructor
 public class StudentController {
-
     private final StudentService studentService;
 
-    @GetMapping
-    public ResponseEntity<List<Student>> findAll() {
-        return ResponseEntity.ok(studentService.findAll());
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StudentDTO> getStudentById(@PathVariable Long id) {
+        return ResponseEntity.ok(studentService.getStudentById(id));
     }
 
-    @GetMapping("/{studentId}")
-    public ResponseEntity<Student> findOne(@PathVariable UUID studentId) {
-        return ResponseEntity.ok(studentService.findOne(studentId));
+    @GetMapping("/matricule/{matricule}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<StudentDTO> getStudentByMatricule(@PathVariable String matricule) {
+        return ResponseEntity.ok(studentService.getStudentByMatricule(matricule));
     }
 
-    @DeleteMapping("/{studentId}")
-    public ResponseEntity<Void> deleteOne(@PathVariable UUID studentId) {
-        studentService.deleteOne(studentId);
-        return ResponseEntity.noContent().build();
+    @GetMapping("/specialization/{specializationCode}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<StudentDTO>> getStudentsBySpecialization(@PathVariable String specializationCode) {
+        return ResponseEntity.ok(studentService.getStudentsBySpecialization(specializationCode));
     }
 
-    @PutMapping("{studentId}")
-    public ResponseEntity<Student> updateOne(
-            @PathVariable UUID studentId,
-            @RequestBody @Valid StudentUpdate student) {
-        return ResponseEntity.ok(studentService.updateOne(studentId, student));
+    @GetMapping("/me")
+    public ResponseEntity<StudentDTO> getCurrentStudent(
+            @AuthenticationPrincipal UserPrincipal principal) {
+        return ResponseEntity.ok(studentService.getStudentByUserId(principal.getId()));
     }
 
-    @PostMapping
-    public ResponseEntity<Student> createOne(
-            @RequestBody @Valid StudentCreate student) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(studentService.createOne(student));
+    @GetMapping("/{studentId}/surveys")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<SurveyDTO>> getSurveysForStudent(@PathVariable Long studentId) {
+        return ResponseEntity.ok(studentService.getSurveysForStudent(studentId));
     }
+
+
+
 }

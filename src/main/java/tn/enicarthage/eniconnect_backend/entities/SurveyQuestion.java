@@ -1,38 +1,32 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.hibernate.annotations.CreationTimestamp;
-
-import java.time.LocalDateTime;
-import java.util.UUID;
+import lombok.*;
 
 @Entity
-@Table(name = "survey_questions")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "survey_questions")
 public class SurveyQuestion {
     @Id
-    @GeneratedValue(generator = "UUID")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "survey_id", nullable = false)
-    private Survey survey;
+    @JoinColumn(name = "survey_template_id", nullable = false)
+    private SurveyTemplate surveyTemplate;
 
-    @ManyToOne
-    @JoinColumn(name = "question_id", nullable = false)
-    private Question question;
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String questionText;
 
     @Column(nullable = false)
-    private Integer displayOrder;
+    private String questionType; // "LIKERT" or "FREE_TEXT"
 
-    @CreationTimestamp
-    @Column(nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Integer questionOrder;
+
+    @Column(columnDefinition = "TEXT") // Change from JSON to TEXT
+    private String options;
 }

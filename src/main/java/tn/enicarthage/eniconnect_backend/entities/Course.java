@@ -1,38 +1,25 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import tn.enicarthage.eniconnect_backend.enums.Filiere;
-import tn.enicarthage.eniconnect_backend.enums.Semester;
-
-import java.util.UUID;
+import lombok.*;
 
 @Entity
-@Table(name = "courses")
 @Getter
 @Setter
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "courses")
 public class Course {
     @Id
-    @GeneratedValue(generator = "UUID")
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
 
     @Column(nullable = false, unique = true)
-    private String courseCode;
+    private String code;
 
-    @Column(nullable = false)
-    private String courseName;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Filiere filiere;
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private Semester semester;
-
+    private String description;
 }

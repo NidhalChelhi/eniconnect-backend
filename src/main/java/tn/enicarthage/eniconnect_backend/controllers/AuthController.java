@@ -1,39 +1,37 @@
 package tn.enicarthage.eniconnect_backend.controllers;
 
-import org.springframework.http.HttpStatus;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-import tn.enicarthage.eniconnect_backend.dtos.LoginRequest;
-import tn.enicarthage.eniconnect_backend.dtos.SignupRequest;
-import tn.enicarthage.eniconnect_backend.services.AuthService;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import tn.enicarthage.eniconnect_backend.dtos.request_response.AuthRequestDTO;
+import tn.enicarthage.eniconnect_backend.dtos.request_response.AuthResponseDTO;
+import tn.enicarthage.eniconnect_backend.security.JwtTokenProvider;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
-    private final AuthService authService;
 
-    public AuthController(AuthService authService) {
-        this.authService = authService;
-    }
-
+    private final AuthenticationManager authenticationManager;
+    private final JwtTokenProvider tokenProvider;
 
     @PostMapping("/login")
-    public ResponseEntity<String> login(
-            @RequestBody LoginRequest loginRequest
-    ) {
-        String token = authService.login(loginRequest);
+    public ResponseEntity<AuthResponseDTO> login(@Valid @RequestBody AuthRequestDTO request) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getUsername(),
+                        request.getPassword()
+                )
+        );
 
-        return new ResponseEntity<>(token, HttpStatus.CREATED);
+        String token = tokenProvider.generateToken(authentication);
+        return ResponseEntity.ok(new AuthResponseDTO(token));
     }
-
-    @PostMapping("/singup")
-    public ResponseEntity<String> signup(
-            @RequestBody SignupRequest signupRequest,
-            @RequestParam String token
-    ) {
-
-        authService.signup(signupRequest, token);
-        return new ResponseEntity<>("Signed Up", HttpStatus.CREATED);
-    }
-
 }

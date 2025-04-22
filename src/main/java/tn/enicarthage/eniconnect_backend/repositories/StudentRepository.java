@@ -1,19 +1,19 @@
 package tn.enicarthage.eniconnect_backend.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import tn.enicarthage.eniconnect_backend.entities.Specialization;
 import tn.enicarthage.eniconnect_backend.entities.Student;
 
+import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
-@Repository
-public interface StudentRepository extends JpaRepository<Student, UUID> {
+public interface StudentRepository extends JpaRepository<Student, Long> {
+    Student findByMatricule(String matricule);
 
-    Optional<Student> findOneByAccountCreationToken(String token);
+    List<Student> findBySpecialization(Specialization specialization);
 
-    boolean existsByEmail(String email);
+    Optional<Student> findByUserId(Long userId);
 
-    boolean existsByCin(String cin);
-
+    // countbyspecializationcode
+    Long countBySpecializationCode(String code);
 }
