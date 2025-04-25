@@ -1,5 +1,6 @@
 package tn.enicarthage.eniconnect_backend.services.impl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -10,9 +11,13 @@ import tn.enicarthage.eniconnect_backend.entities.*;
 import tn.enicarthage.eniconnect_backend.exceptions.*;
 import tn.enicarthage.eniconnect_backend.repositories.*;
 import tn.enicarthage.eniconnect_backend.services.UserService;
+import tn.enicarthage.eniconnect_backend.utils.AcademicUtils;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final StudentRepository studentRepository;
@@ -33,9 +38,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDTO registerStudent(StudentRegistrationDTO registrationDTO) {
+        // Validate username pattern
+        if (!registrationDTO.getUsername().matches("^[A-Za-z0-9_]{3,20}$")) {
+            throw new ValidationException("Username must be 3-20 alphanumeric characters");
+        }
+
         if (userRepository.existsByUsername(registrationDTO.getUsername())) {
             throw new AlreadyExistsException("Username already exists");
         }
+
         if (userRepository.existsByEmail(registrationDTO.getEmail())) {
             throw new AlreadyExistsException("Email already exists");
         }
@@ -54,9 +65,11 @@ public class UserServiceImpl implements UserService {
 
         Student student = Student.builder()
                 .user(savedUser)
-                .firstName(registrationDTO.getFirstName())
-                .lastName(registrationDTO.getLastName())
-                .matricule(generateMatricule(registrationDTO.getSpecializationCode()))
+                .firstName(registrationDTO.getFirstName().trim())
+                .lastName(registrationDTO.getLastName().trim())
+                .matricule(AcademicUtils.generateMatricule(
+                        registrationDTO.getSpecializationCode(),
+                        studentRepository.countBySpecializationCode(registrationDTO.getSpecializationCode())))
                 .specialization(specialization)
                 .entryYear(registrationDTO.getEntryYear())
                 .build();
@@ -73,6 +86,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void changePassword(Long userId, ChangePasswordDTO changePasswordDTO) {
+        if (changePasswordDTO.getNewPassword().equals(changePasswordDTO.getOldPassword())) {
+            throw new ValidationException("New password must be different from old password");
+        }
+
+        if (changePasswordDTO.getNewPassword().length() < 8) {
+            throw new ValidationException("Password must be at least 8 characters");
+        }
         changePasswordDTO.validate(); // Add this line
 
         User user = userRepository.findById(userId)
@@ -86,9 +106,5 @@ public class UserServiceImpl implements UserService {
         userRepository.save(user);
     }
 
-    private String generateMatricule(String specializationCode) {
-        Long nextStudentNumber = studentRepository.countBySpecializationCode(specializationCode) + 1;
-        int currentYear = java.time.Year.now().getValue() % 100; // Last 2 digits of year
-        return String.format("%s%02d%04d", specializationCode, currentYear, nextStudentNumber);
-    }
+
 }

@@ -1,5 +1,6 @@
 package tn.enicarthage.eniconnect_backend.services;
 
+import tn.enicarthage.eniconnect_backend.dtos.request_response.SurveyStatsDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyResponseDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyResponseSummaryDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveySubmissionDTO;
@@ -14,4 +15,6 @@ public interface SurveyResponseService {
     SurveyResponseDTO getStudentResponse(Long surveyId, Long studentId);
 
     List<SurveyResponseSummaryDTO> getSurveyResponses(Long surveyId);
+
+    SurveyStatsDTO getSurveyStats(Long surveyId);
 }

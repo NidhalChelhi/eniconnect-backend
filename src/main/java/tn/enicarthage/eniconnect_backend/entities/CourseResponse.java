@@ -2,6 +2,8 @@ package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 
 import java.util.List;
 
@@ -30,4 +32,10 @@ public class CourseResponse {
 
     @OneToMany(mappedBy = "courseResponse", cascade = CascadeType.ALL)
     private List<QuestionResponse> questionResponses;
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
 }

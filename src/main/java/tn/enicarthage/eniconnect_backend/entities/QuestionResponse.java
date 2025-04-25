@@ -2,6 +2,8 @@ package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 
 import java.time.LocalDateTime;
 
@@ -29,4 +31,10 @@ public class QuestionResponse {
     private String responseValue; // Stores the selected option or text response
 
     private LocalDateTime responseTime;
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
 }

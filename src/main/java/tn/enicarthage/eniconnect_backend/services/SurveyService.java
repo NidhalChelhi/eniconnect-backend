@@ -2,7 +2,7 @@ package tn.enicarthage.eniconnect_backend.services;
 
 
 import tn.enicarthage.eniconnect_backend.dtos.base.CourseDTO;
-import tn.enicarthage.eniconnect_backend.dtos.request_response.CreateSurveyRequest;
+import tn.enicarthage.eniconnect_backend.dtos.request_response.CreateSurveyRequestDTO;
 import tn.enicarthage.eniconnect_backend.dtos.request_response.SurveyStatsDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyQuestionDTO;
@@ -11,7 +11,7 @@ import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyWithQuestionsDTO;
 import java.util.List;
 
 public interface SurveyService {
-    SurveyDTO createSurvey(CreateSurveyRequest request);
+    SurveyDTO createSurvey(CreateSurveyRequestDTO request);
 
     SurveyDTO getSurveyById(Long id);
 

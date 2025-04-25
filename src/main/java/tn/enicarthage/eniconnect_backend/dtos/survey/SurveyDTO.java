@@ -20,4 +20,7 @@ public class SurveyDTO {
     private LocalDateTime openDate;
     private LocalDateTime closeDate;
     private Boolean isActive;
+
+
+
 }

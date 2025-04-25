@@ -10,5 +10,4 @@ public class UserDTO {
     private String username;
     private String email;
     private String role;
-    private String token;  // Added this field
 }

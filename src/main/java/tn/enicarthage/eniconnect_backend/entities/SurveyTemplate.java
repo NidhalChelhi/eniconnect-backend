@@ -1,7 +1,10 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +29,18 @@ public class SurveyTemplate {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    @OneToMany(mappedBy = "surveyTemplate", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "surveyTemplate")
+    @JsonIgnore
     private List<SurveyQuestion> questions;
+
+
+    @Column(nullable = false)
+    private Boolean isSystemDefault = false; // For pre-built templates
+
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
 }

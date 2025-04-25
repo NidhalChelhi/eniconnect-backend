@@ -1,25 +1,32 @@
+// File: src/main/java/tn/enicarthage/eniconnect_backend/services/impl/SurveyServiceImpl.java
 package tn.enicarthage.eniconnect_backend.services.impl;
 
-
 import jakarta.transaction.Transactional;
-import jakarta.validation.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import tn.enicarthage.eniconnect_backend.dtos.base.AcademicYearDTO;
 import tn.enicarthage.eniconnect_backend.dtos.base.CourseDTO;
-import tn.enicarthage.eniconnect_backend.dtos.request_response.CreateSurveyRequest;
+import tn.enicarthage.eniconnect_backend.dtos.base.SemesterDTO;
+import tn.enicarthage.eniconnect_backend.dtos.base.SpecializationDTO;
+import tn.enicarthage.eniconnect_backend.dtos.request_response.CreateSurveyRequestDTO;
 import tn.enicarthage.eniconnect_backend.dtos.request_response.SurveyStatsDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyQuestionDTO;
+import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyTemplateDTO;
 import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyWithQuestionsDTO;
 import tn.enicarthage.eniconnect_backend.entities.*;
 import tn.enicarthage.eniconnect_backend.exceptions.ResourceNotFoundException;
+import tn.enicarthage.eniconnect_backend.exceptions.ResponseSubmissionException;
+import tn.enicarthage.eniconnect_backend.exceptions.SurveyClosedException;
+import tn.enicarthage.eniconnect_backend.exceptions.ValidationException;
 import tn.enicarthage.eniconnect_backend.repositories.*;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
+import tn.enicarthage.eniconnect_backend.utils.AcademicUtils;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,7 +41,7 @@ public class SurveyServiceImpl implements SurveyService {
 
     @Override
     @Transactional
-    public SurveyDTO createSurvey(CreateSurveyRequest request) {
+    public SurveyDTO createSurvey(CreateSurveyRequestDTO request) {
         SurveyTemplate template = templateRepository.findById(request.getTemplateId())
                 .orElseThrow(() -> new ResourceNotFoundException("Template not found"));
 
@@ -44,151 +51,208 @@ public class SurveyServiceImpl implements SurveyService {
         Specialization specialization = specializationRepository.findById(request.getSpecializationId())
                 .orElseThrow(() -> new ResourceNotFoundException("Specialization not found"));
 
-        if (request.getYearOfStudy() < 1 || request.getYearOfStudy() > 3) {
-            throw new ValidationException("Year of study must be between 1 and 3");
+        // Auto-fetch courses for this survey
+        List<SemesterCourse> courses = semesterCourseRepository.findBySemesterAndSpecializationAndYear(
+                request.getSemesterId(),
+                request.getSpecializationId(),
+                request.getYearOfStudy());
+
+        if (courses.isEmpty()) {
+            throw new ValidationException("No courses found for this specialization, semester and year");
         }
 
-        Survey survey = new Survey();
-        survey.setSurveyTemplate(template);
-        survey.setSemester(semester);
-        survey.setSpecialization(specialization);
-        survey.setYearOfStudy(request.getYearOfStudy());
-        survey.setTitle(request.getTitle());
-        survey.setDescription(request.getDescription());
-        survey.setOpenDate(request.getOpenDate());
-        survey.setCloseDate(request.getCloseDate());
-        survey.setIsActive(false);
+        Survey survey = Survey.builder()
+                .surveyTemplate(template)
+                .semester(semester)
+                .specialization(specialization)
+                .yearOfStudy(request.getYearOfStudy())
+                .title(request.getTitle())
+                .description(request.getDescription())
+                .openDate(request.getOpenDate())
+                .closeDate(request.getCloseDate())
+                .isActive(false)
+                .build();
 
         surveyRepository.save(survey);
         return convertToDTO(survey);
     }
 
+
     @Override
     public SurveyDTO getSurveyById(Long id) {
         Survey survey = surveyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + id));
         return convertToDTO(survey);
     }
 
     @Override
     public List<SurveyDTO> getActiveSurveys() {
-        return surveyRepository.findByIsActiveTrue().stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+        try {
+            return surveyRepository.findByIsActiveTrue().stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new ResponseSubmissionException("Failed to retrieve active surveys: " + e.getMessage());
+        }
     }
 
     @Override
     public List<SurveyDTO> getSurveysBySpecializationAndYear(String specializationCode, int yearOfStudy) {
-        Optional<Specialization> specOptional = specializationRepository.findByCode(specializationCode);
-        Specialization specialization = specOptional.orElseThrow(() ->
-                new ResourceNotFoundException("Specialization not found"));
+        try {
+            Specialization specialization = specializationRepository.findByCode(specializationCode)
+                    .orElseThrow(() -> new ResourceNotFoundException("Specialization not found with code: " + specializationCode));
 
-        return surveyRepository.findBySpecializationAndYearOfStudy(specialization, yearOfStudy).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+            return surveyRepository.findBySpecializationAndYearOfStudy(specialization, yearOfStudy).stream()
+                    .map(this::convertToDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new ResponseSubmissionException("Failed to retrieve surveys: " + e.getMessage());
+        }
     }
 
     @Override
     @Transactional
     public void activateSurvey(Long surveyId) {
-        Survey survey = surveyRepository.findById(surveyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+        try {
+            Survey survey = surveyRepository.findById(surveyId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
 
-        if (survey.getOpenDate().isAfter(LocalDateTime.now())) {
-            throw new ValidationException("Cannot activate survey before open date");
+            if (survey.getOpenDate().isAfter(LocalDateTime.now())) {
+                throw new ValidationException("Cannot activate survey before its open date");
+            }
+
+            if (survey.getCloseDate().isBefore(LocalDateTime.now())) {
+                throw new SurveyClosedException("Cannot activate a survey with past close date");
+            }
+
+            survey.setIsActive(true);
+            surveyRepository.save(survey);
+        } catch (Exception e) {
+            throw new ResponseSubmissionException("Failed to activate survey: " + e.getMessage());
         }
-
-        if (survey.getCloseDate().isBefore(LocalDateTime.now())) {
-            throw new ValidationException("Cannot activate a survey with past close date");
-        }
-
-        survey.setIsActive(true);
-        surveyRepository.save(survey);
     }
 
     @Override
     @Transactional
     public void closeSurvey(Long surveyId) {
-        Survey survey = surveyRepository.findById(surveyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+        try {
+            Survey survey = surveyRepository.findById(surveyId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
 
-        survey.setIsActive(false);
-        surveyRepository.save(survey);
+            survey.setIsActive(false);
+            surveyRepository.save(survey);
+        } catch (Exception e) {
+            throw new ResponseSubmissionException("Failed to close survey: " + e.getMessage());
+        }
     }
 
     @Override
     public SurveyStatsDTO getSurveyStats(Long surveyId) {
-        Survey survey = surveyRepository.findById(surveyId)
-                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
+        try {
+            Survey survey = surveyRepository.findById(surveyId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + surveyId));
 
-        List<SemesterCourse> courses = semesterCourseRepository
-                .findBySemesterAndSpecializationAndYearOfStudy(
-                        survey.getSemester(),
-                        survey.getSpecialization(),
-                        survey.getYearOfStudy());
+            List<SemesterCourse> courses = semesterCourseRepository
+                    .findBySemesterAndSpecializationAndYearOfStudy(
+                            survey.getSemester(),
+                            survey.getSpecialization(),
+                            survey.getYearOfStudy());
 
-        // Implementation of statistics calculation would go here
-        // This is a simplified version
-        return SurveyStatsDTO.builder()
-                .surveyId(surveyId)
-                .surveyTitle(survey.getTitle())
-                .totalResponses(survey.getResponses().size())
-                .build();
+            return SurveyStatsDTO.builder()
+                    .surveyId(surveyId)
+                    .surveyTitle(survey.getTitle())
+                    .totalResponses(survey.getResponses().size())
+                    .build();
+        } catch (Exception e) {
+            throw new ResponseSubmissionException("Failed to get survey stats: " + e.getMessage());
+        }
     }
 
     private SurveyDTO convertToDTO(Survey survey) {
         return SurveyDTO.builder()
                 .id(survey.getId())
-                .title(survey.getTitle()    )
-                .description(survey.getDescription())
+                .template(SurveyTemplateDTO.builder()
+                        .id(survey.getSurveyTemplate().getId())
+                        .name(survey.getSurveyTemplate().getName())
+                        .description(survey.getSurveyTemplate().getDescription())
+                        .isSystemDefault(survey.getSurveyTemplate().getIsSystemDefault())
+                        .build())
+                .semester(SemesterDTO.builder()
+                        .id(survey.getSemester().getId())
+                        .number(survey.getSemester().getNumber())
+                        .startDate(survey.getSemester().getStartDate().toLocalDate())
+                        .endDate(survey.getSemester().getEndDate().toLocalDate())
+                        .academicYear(AcademicYearDTO.builder()
+                                .id(survey.getSemester().getAcademicYear().getId())
+                                .name(survey.getSemester().getAcademicYear().getName())
+                                .startYear(survey.getSemester().getAcademicYear().getStartYear())
+                                .endYear(survey.getSemester().getAcademicYear().getEndYear())
+                                .build())
+                        .build())
+                .specialization(SpecializationDTO.builder()
+                        .id(survey.getSpecialization().getId())
+                        .code(survey.getSpecialization().getCode())
+                        .name(survey.getSpecialization().getName())
+                        .build())
                 .yearOfStudy(survey.getYearOfStudy())
-                .openDate(survey.getOpenDate())
-                .closeDate(survey.getCloseDate())
-                .isActive(survey.getIsActive())
-                .build();
-    }
-
-
-    @Override
-    public SurveyWithQuestionsDTO getSurveyWithQuestions(Long id) {
-        Survey survey = surveyRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
-
-        List<SemesterCourse> courses = semesterCourseRepository
-                .findBySemesterAndSpecializationAndYearOfStudy(
-                        survey.getSemester(),
-                        survey.getSpecialization(),
-                        survey.getYearOfStudy());
-
-        return SurveyWithQuestionsDTO.builder()
-                .id(survey.getId())
                 .title(survey.getTitle())
                 .description(survey.getDescription())
-                .yearOfStudy(survey.getYearOfStudy())
                 .openDate(survey.getOpenDate())
                 .closeDate(survey.getCloseDate())
                 .isActive(survey.getIsActive())
-                .questions(survey.getSurveyTemplate().getQuestions().stream()
-                        .map(this::convertQuestionToDTO)
-                        .collect(Collectors.toList()))
-                .courses(courses.stream()
-                        .map(sc -> CourseDTO.builder()
-                                .id(sc.getCourse().getId())
-                                .name(sc.getCourse().getName())
-                                .code(sc.getCourse().getCode())
-                                .build())
-                        .collect(Collectors.toList()))
                 .build();
     }
 
     @Override
-    public List<SurveyQuestionDTO> getSurveyTemplateQuestions(Long templateId) {
-        SurveyTemplate template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new ResourceNotFoundException("Template not found"));
+    @Transactional
+    public SurveyWithQuestionsDTO getSurveyWithQuestions(Long id) {
+        try {
+            Survey survey = surveyRepository.findById(id)
+                    .orElseThrow(() -> new ResourceNotFoundException("Survey not found with id: " + id));
 
-        return template.getQuestions().stream()
-                .map(this::convertQuestionToDTO)
-                .collect(Collectors.toList());
+            List<SemesterCourse> courses = semesterCourseRepository
+                    .findBySemesterAndSpecializationAndYearOfStudy(
+                            survey.getSemester(),
+                            survey.getSpecialization(),
+                            survey.getYearOfStudy());
+
+            return SurveyWithQuestionsDTO.builder()
+                    .id(survey.getId())
+                    .title(survey.getTitle())
+                    .description(survey.getDescription())
+                    .yearOfStudy(survey.getYearOfStudy())
+                    .openDate(survey.getOpenDate())
+                    .closeDate(survey.getCloseDate())
+                    .isActive(survey.getIsActive())
+                    .questions(survey.getSurveyTemplate().getQuestions().stream()
+                            .map(this::convertQuestionToDTO)
+                            .collect(Collectors.toList()))
+                    .courses(courses.stream()
+                            .map(sc -> CourseDTO.builder()
+                                    .id(sc.getCourse().getId())
+                                    .name(sc.getCourse().getName())
+                                    .code(sc.getCourse().getCode())
+                                    .build())
+                            .collect(Collectors.toList()))
+                    .build();
+        } catch (Exception e) {
+            throw new ResponseSubmissionException("Failed to get survey with questions: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public List<SurveyQuestionDTO> getSurveyTemplateQuestions(Long templateId) {
+        try {
+            SurveyTemplate template = templateRepository.findById(templateId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Template not found with id: " + templateId));
+
+            return template.getQuestions().stream()
+                    .map(this::convertQuestionToDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            throw new ResponseSubmissionException("Failed to get template questions: " + e.getMessage());
+        }
     }
 
     private SurveyQuestionDTO convertQuestionToDTO(SurveyQuestion question) {
@@ -207,10 +271,22 @@ public class SurveyServiceImpl implements SurveyService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
 
-        return surveyRepository.findBySpecializationAndYearOfStudy(
-                        student.getSpecialization(),
-                        calculateYearOfStudy(student.getEntryYear()))
-                .stream()
+        // Get student's current year of study
+        int yearOfStudy = AcademicUtils.calculateYearOfStudy(student.getEntryYear());
+
+        // Get current semester
+        int currentMonth = LocalDate.now().getMonthValue();
+        int semesterNumber = (currentMonth >= 2 && currentMonth <= 6) ? 2 : 1;
+
+        // Find surveys for student's specialization and year of study
+        List<Survey> surveys = surveyRepository.findBySpecializationAndYearOfStudy(
+                student.getSpecialization(),
+                yearOfStudy);
+
+        // Filter for current semester
+        return surveys.stream()
+                .filter(s -> s.getSemester().getNumber() == semesterNumber)
+                .filter(s -> s.getSemester().getAcademicYear().getEndYear() >= LocalDate.now().getYear())
                 .map(this::convertToDTO)
                 .collect(Collectors.toList());
     }
@@ -221,9 +297,9 @@ public class SurveyServiceImpl implements SurveyService {
                 .orElseThrow(() -> new ResourceNotFoundException("Survey not found"));
 
         return semesterCourseRepository
-                .findBySemesterAndSpecializationAndYearOfStudy(
-                        survey.getSemester(),
-                        survey.getSpecialization(),
+                .findBySemesterAndSpecializationAndYear(
+                        survey.getSemester().getId(),
+                        survey.getSpecialization().getId(),
                         survey.getYearOfStudy())
                 .stream()
                 .map(sc -> CourseDTO.builder()
@@ -236,6 +312,6 @@ public class SurveyServiceImpl implements SurveyService {
 
     private int calculateYearOfStudy(int entryYear) {
         int currentYear = java.time.Year.now().getValue();
-        return currentYear - entryYear + 1; // +1 because first year is year 1
+        return currentYear - entryYear + 1;
     }
 }

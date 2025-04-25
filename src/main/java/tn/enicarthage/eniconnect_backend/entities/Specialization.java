@@ -2,6 +2,8 @@ package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 
 @Entity
 @Getter
@@ -20,4 +22,10 @@ public class Specialization {
 
     @Column(nullable = false, unique = true)
     private String code;
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
 }

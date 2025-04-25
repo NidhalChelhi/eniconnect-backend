@@ -2,6 +2,8 @@ package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 
 @Entity
 @Getter
@@ -22,4 +24,10 @@ public class Course {
     private String code;
 
     private String description;
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
 }

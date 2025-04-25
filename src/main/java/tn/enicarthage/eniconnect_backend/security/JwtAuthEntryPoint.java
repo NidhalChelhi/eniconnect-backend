@@ -1,11 +1,14 @@
+// File: src/main/java/tn/enicarthage/eniconnect_backend/security/JwtAuthEntryPoint.java
 package tn.enicarthage.eniconnect_backend.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
+import tn.enicarthage.eniconnect_backend.dtos.request_response.ErrorResponseDTO;
 
 import java.io.IOException;
 
@@ -15,6 +18,17 @@ public class JwtAuthEntryPoint implements AuthenticationEntryPoint {
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
                          AuthenticationException authException) throws IOException, ServletException {
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, authException.getMessage());
+
+        response.setContentType("application/json");
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+
+        ErrorResponseDTO errorResponse = new ErrorResponseDTO(
+                HttpServletResponse.SC_UNAUTHORIZED,
+                "Unauthorized",
+                authException.getMessage(),
+                request.getServletPath()
+        );
+
+        new ObjectMapper().writeValue(response.getWriter(), errorResponse);
     }
 }

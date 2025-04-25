@@ -2,6 +2,8 @@ package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -16,26 +18,33 @@ import java.util.Collections;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "users")
+@Table(name = "users",
+        indexes = {
+                @Index(name = "idx_user_username", columnList = "username", unique = true),
+                @Index(name = "idx_user_email", columnList = "email", unique = true)
+        })
 public class User implements UserDetails {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String username;
 
     @Column(nullable = false)
     private String passwordHash;
 
-    @Column(unique = true, nullable = false)
+    @Column(nullable = false)
     private String email;
 
     @Column(nullable = false)
     private String role; // "ADMIN" or "STUDENT"
 
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -45,6 +54,11 @@ public class User implements UserDetails {
     @Override
     public String getPassword() {
         return passwordHash;
+    }
+
+    @Override
+    public String getUsername() {
+        return username;
     }
 
     @Override

@@ -1,7 +1,10 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+import org.springframework.data.annotation.CreatedBy;
+import org.springframework.data.annotation.LastModifiedBy;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -12,7 +15,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "surveys")
+@Table(name = "surveys", indexes = {
+        @Index(name = "idx_survey_specialization_year", columnList = "specialization_id,yearOfStudy"),
+        @Index(name = "idx_survey_active", columnList = "isActive")
+})
 public class Survey {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,5 +51,12 @@ public class Survey {
     private Boolean isActive;
 
     @OneToMany(mappedBy = "survey")
+    @JsonIgnore
     private List<SurveyResponse> responses;
+
+    @CreatedBy
+    private String createdBy;
+
+    @LastModifiedBy
+    private String updatedBy;
 }

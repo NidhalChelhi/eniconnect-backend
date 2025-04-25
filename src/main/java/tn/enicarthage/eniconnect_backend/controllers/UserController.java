@@ -19,7 +19,8 @@ public class UserController {
 
     @GetMapping("/me")
     public ResponseEntity<UserDTO> getCurrentUser(@AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(userService.getUserById(principal.getId()));
+        UserDTO userDTO = userService.getUserById(principal.getId());
+        return ResponseEntity.ok(userDTO);
     }
 
     @PostMapping("/register")

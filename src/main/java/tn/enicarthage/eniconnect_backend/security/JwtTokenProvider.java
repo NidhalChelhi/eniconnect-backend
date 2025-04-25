@@ -3,17 +3,16 @@ package tn.enicarthage.eniconnect_backend.security;
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Service;
-import tn.enicarthage.eniconnect_backend.entities.User;
+import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-@Service
+@Component
 public class JwtTokenProvider {
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
 
@@ -24,14 +23,14 @@ public class JwtTokenProvider {
     private long jwtExpiration;
 
     public String generateToken(Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + jwtExpiration);
+        UserPrincipal userPrincipal = (UserPrincipal) authentication.getPrincipal();
 
         return Jwts.builder()
-                .setSubject(user.getUsername())
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
+                .setSubject(userPrincipal.getUsername())
+                .claim("id", userPrincipal.getId())
+                .claim("role", userPrincipal.getRole())
+                .setIssuedAt(new Date())
+                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
                 .signWith(getSignInKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
@@ -69,4 +68,3 @@ public class JwtTokenProvider {
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }
-

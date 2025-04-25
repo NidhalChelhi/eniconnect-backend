@@ -1,3 +1,4 @@
+// File: src/main/java/tn/enicarthage/eniconnect_backend/controllers/SurveyController.java
 package tn.enicarthage.eniconnect_backend.controllers;
 
 import lombok.RequiredArgsConstructor;
@@ -6,11 +7,9 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import tn.enicarthage.eniconnect_backend.dtos.base.CourseDTO;
-import tn.enicarthage.eniconnect_backend.dtos.request_response.CreateSurveyRequest;
+import tn.enicarthage.eniconnect_backend.dtos.request_response.CreateSurveyRequestDTO;
 import tn.enicarthage.eniconnect_backend.dtos.request_response.SurveyStatsDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyQuestionDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyWithQuestionsDTO;
+import tn.enicarthage.eniconnect_backend.dtos.survey.*;
 import tn.enicarthage.eniconnect_backend.security.UserPrincipal;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
 
@@ -24,7 +23,7 @@ public class SurveyController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<SurveyDTO> createSurvey(@RequestBody CreateSurveyRequest request) {
+    public ResponseEntity<SurveyDTO> createSurvey(@RequestBody CreateSurveyRequestDTO request) {
         return ResponseEntity.ok(surveyService.createSurvey(request));
     }
 
@@ -75,7 +74,6 @@ public class SurveyController {
     public ResponseEntity<List<SurveyQuestionDTO>> getSurveyTemplateQuestions(@PathVariable Long templateId) {
         return ResponseEntity.ok(surveyService.getSurveyTemplateQuestions(templateId));
     }
-
 
     @GetMapping("/for-student")
     public ResponseEntity<List<SurveyDTO>> getSurveysForCurrentStudent(

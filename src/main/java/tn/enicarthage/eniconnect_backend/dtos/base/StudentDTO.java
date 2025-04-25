@@ -11,4 +11,7 @@ public class StudentDTO {
     private String lastName;
     private String matricule;
     private String specializationCode;
+    private String specializationName; // Added
+    private int yearOfStudy; // Added
+    private String email; // Added from User
 }

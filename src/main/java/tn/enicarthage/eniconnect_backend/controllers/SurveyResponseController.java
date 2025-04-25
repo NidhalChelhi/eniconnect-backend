@@ -1,3 +1,4 @@
+// File: src/main/java/tn/enicarthage/eniconnect_backend/controllers/SurveyResponseController.java
 package tn.enicarthage.eniconnect_backend.controllers;
 
 import lombok.RequiredArgsConstructor;
@@ -5,9 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyResponseDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyResponseSummaryDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveySubmissionDTO;
+import tn.enicarthage.eniconnect_backend.dtos.survey.*;
 import tn.enicarthage.eniconnect_backend.security.UserPrincipal;
 import tn.enicarthage.eniconnect_backend.services.SurveyResponseService;
 
