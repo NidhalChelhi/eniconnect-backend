@@ -1,99 +1,88 @@
 package tn.enicarthage.eniconnect_backend.services.impl;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import tn.enicarthage.eniconnect_backend.dtos.base.StudentDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyDTO;
-import tn.enicarthage.eniconnect_backend.entities.*;
-import tn.enicarthage.eniconnect_backend.exceptions.ResourceNotFoundException;
-import tn.enicarthage.eniconnect_backend.repositories.*;
+import tn.enicarthage.eniconnect_backend.dtos.request.student.CreateStudentDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.student.UpdateStudentProfileDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
+import tn.enicarthage.eniconnect_backend.entities.Student;
+import tn.enicarthage.eniconnect_backend.mappers.StudentMapper;
+import tn.enicarthage.eniconnect_backend.repositories.StudentRepository;
 import tn.enicarthage.eniconnect_backend.services.StudentService;
-import tn.enicarthage.eniconnect_backend.utils.AcademicUtils;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Transactional
 public class StudentServiceImpl implements StudentService {
 
     private final StudentRepository studentRepository;
-    private final SurveyRepository surveyRepository;
-    private final SpecializationRepository specializationRepository;
-    Logger logger = LoggerFactory.getLogger(StudentServiceImpl.class);
+    private final StudentMapper studentMapper;
 
     @Override
-    public StudentDTO getStudentById(Long id) {
+    public StudentDto getStudentById(Long id) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + id));
-        return convertToDTO(student);
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        return studentMapper.toDto(student);
     }
 
     @Override
-    public StudentDTO getStudentByMatricule(String matricule) {
-        Student student = studentRepository.findByMatricule(matricule);
-        if (student == null) {
-            throw new ResourceNotFoundException("Student not found with matricule: " + matricule);
+    public StudentDto getStudentByEmail(String email) {
+        Student student = studentRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        return studentMapper.toDto(student);
+    }
+
+    @Override
+    public StudentDto getStudentByMatricule(String phoneNumber) {
+        Student student = studentRepository.findByMatricule(phoneNumber)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        return studentMapper.toDto(student);
+    }
+
+    @Override
+    public List<StudentDto> getAllStudents() {
+        List<Student> students = studentRepository.findAll();
+        return students.stream()
+                .map(studentMapper::toDto)
+                .toList();
+    }
+
+    @Override
+    public Page<StudentDto> getAllStudents(Pageable pageable) {
+        Page<Student> students = studentRepository.findAll(pageable);
+        return students.map(studentMapper::toDto);
+    }
+
+    @Override
+    public StudentDto createStudent(CreateStudentDto studentCreateDTO) {
+        if (studentRepository.existsByEmail(studentCreateDTO.email()) || studentRepository.existsByMatricule(studentCreateDTO.matricule())) {
+            throw new RuntimeException("Student already exists");
         }
-        return convertToDTO(student);
+
+        Student student = studentMapper.toEntity(studentCreateDTO);
+        Student savedStudent = studentRepository.save(student);
+        return studentMapper.toDto(savedStudent);
     }
 
     @Override
-    public List<StudentDTO> getStudentsBySpecialization(String specializationCode) {
-        Specialization specialization = specializationRepository.findByCode(specializationCode)
-                .orElseThrow(() -> new ResourceNotFoundException("Specialization not found"));
-        return studentRepository.findBySpecialization(specialization).stream()
-                .map(this::convertToDTO)
-                .collect(Collectors.toList());
+    public StudentDto updateStudentProfile(Long id, UpdateStudentProfileDto studentUpdateDTO) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+
+        studentMapper.updateEntityFromDto(student, studentUpdateDTO);
+        Student updatedStudent = studentRepository.save(student);
+        return studentMapper.toDto(updatedStudent);
     }
 
     @Override
-    public StudentDTO getStudentByUserId(Long userId) {
-        Student student = studentRepository.findByUserId(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-        return convertToDTO(student);
-    }
-
-    @Override
-    public List<SurveyDTO> getSurveysForStudent(Long studentId) {
-        Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found"));
-
-
-        return surveyRepository.findBySpecializationAndYearOfStudy(
-                        student.getSpecialization(),
-                        AcademicUtils.calculateYearOfStudy(student.getEntryYear()))
-                .stream()
-                .map(this::convertSurveyToDTO)
-                .collect(Collectors.toList());
-    }
-
-    private StudentDTO convertToDTO(Student student) {
-        return StudentDTO.builder()
-                .id(student.getId())
-                .firstName(student.getFirstName())
-                .lastName(student.getLastName())
-                .matricule(student.getMatricule())
-                .specializationCode(student.getSpecialization().getCode())
-                .specializationName(student.getSpecialization().getName())
-                .yearOfStudy(
-                        AcademicUtils.calculateYearOfStudy(student.getEntryYear()) // Calculate year of study
-                )
-                .email(student.getUser().getEmail())
-                .build();
-    }
-
-    private SurveyDTO convertSurveyToDTO(Survey survey) {
-        return SurveyDTO.builder()
-                .id(survey.getId())
-                .title(survey.getTitle())
-                .description(survey.getDescription())
-                .yearOfStudy(survey.getYearOfStudy())
-                .openDate(survey.getOpenDate())
-                .closeDate(survey.getCloseDate())
-                .isActive(survey.getIsActive())
-                .build();
+    public void deleteStudent(Long id) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        studentRepository.delete(student);
     }
 }

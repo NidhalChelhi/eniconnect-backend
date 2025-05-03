@@ -1,54 +1,80 @@
 package tn.enicarthage.eniconnect_backend.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
-import tn.enicarthage.eniconnect_backend.dtos.base.CourseDTO;
-import tn.enicarthage.eniconnect_backend.dtos.base.StudentDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyDTO;
-import tn.enicarthage.eniconnect_backend.security.UserPrincipal;
+import tn.enicarthage.eniconnect_backend.dtos.request.student.CreateStudentDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.student.UpdateStudentProfileDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 import tn.enicarthage.eniconnect_backend.services.StudentService;
 
 import java.util.List;
 
+
 @RestController
-@RequestMapping("/students")
+@RequestMapping("/api/students")
 @RequiredArgsConstructor
 public class StudentController {
+
     private final StudentService studentService;
 
+
     @GetMapping("/{id}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<StudentDTO> getStudentById(@PathVariable Long id) {
-        return ResponseEntity.ok(studentService.getStudentById(id));
+    public ResponseEntity<StudentDto> getStudentById(@PathVariable Long id) {
+        StudentDto student = studentService.getStudentById(id);
+        return ResponseEntity.ok(student);
+    }
+
+    @GetMapping("/email/{email}")
+    public ResponseEntity<StudentDto> getStudentByEmail(@PathVariable String email) {
+        StudentDto student = studentService.getStudentByEmail(email);
+        return ResponseEntity.ok(student);
     }
 
     @GetMapping("/matricule/{matricule}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<StudentDTO> getStudentByMatricule(@PathVariable String matricule) {
-        return ResponseEntity.ok(studentService.getStudentByMatricule(matricule));
-    }
-
-    @GetMapping("/specialization/{specializationCode}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<StudentDTO>> getStudentsBySpecialization(@PathVariable String specializationCode) {
-        return ResponseEntity.ok(studentService.getStudentsBySpecialization(specializationCode));
-    }
-
-    @GetMapping("/me")
-    public ResponseEntity<StudentDTO> getCurrentStudent(
-            @AuthenticationPrincipal UserPrincipal principal) {
-        return ResponseEntity.ok(studentService.getStudentByUserId(principal.getId()));
-    }
-
-    @GetMapping("/{studentId}/surveys")
-    @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<List<SurveyDTO>> getSurveysForStudent(@PathVariable Long studentId) {
-        return ResponseEntity.ok(studentService.getSurveysForStudent(studentId));
+    public ResponseEntity<StudentDto> getStudentByMatricule(@PathVariable String matricule) {
+        StudentDto student = studentService.getStudentByMatricule(matricule);
+        return ResponseEntity.ok(student);
     }
 
 
+    @GetMapping
+    public ResponseEntity<List<StudentDto>> getAllStudents() {
+        List<StudentDto> students = studentService.getAllStudents();
+        return ResponseEntity.ok(students);
+    }
+
+    @GetMapping("/paged")
+    public ResponseEntity<Page<StudentDto>> getAllStudentsPaged(
+            @PageableDefault(size = 10, sort = "id") Pageable pageable) {
+        Page<StudentDto> students = studentService.getAllStudents(pageable);
+        return ResponseEntity.ok(students);
+    }
+
+
+    @PostMapping
+    public ResponseEntity<StudentDto> createStudent(@RequestBody CreateStudentDto createStudentDto) {
+        StudentDto createdStudent = studentService.createStudent(createStudentDto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
+    }
+
+
+    @PutMapping("/{id}")
+    public ResponseEntity<StudentDto> updateStudent(
+            @PathVariable Long id,
+            @RequestBody UpdateStudentProfileDto updateStudentProfileDto) {
+        StudentDto updatedStudent = studentService.updateStudentProfile(id, updateStudentProfileDto);
+        return ResponseEntity.ok(updatedStudent);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
+        studentService.deleteStudent(id);
+        return ResponseEntity.noContent().build();
+    }
 
 }

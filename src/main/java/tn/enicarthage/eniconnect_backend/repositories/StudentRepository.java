@@ -1,35 +1,41 @@
 package tn.enicarthage.eniconnect_backend.repositories;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
-import tn.enicarthage.eniconnect_backend.entities.Specialization;
+import org.springframework.stereotype.Repository;
 import tn.enicarthage.eniconnect_backend.entities.Student;
+import tn.enicarthage.eniconnect_backend.enums.Speciality;
 
 import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
 
+    // Find by matricule (unique)
+    Optional<Student> findByMatricule(String matricule);
 
-    Student findByMatricule(String matricule);
+    // Find by email (unique)
+    Optional<Student> findByEmail(String email);
 
-    List<Student> findBySpecialization(Specialization specialization);
+    // Find students by speciality and level (for bulk operations)
+    List<Student> findBySpecialityAndCurrentLevel(
+            Speciality speciality,
+            int currentLevel
+    );
 
-    Optional<Student> findByUserId(Long userId);
+    // Check if email or matricule exists (for validation)
+    boolean existsByEmail(String email);
+
+    boolean existsByMatricule(String matricule);
 
 
-    @Query("SELECT COUNT(s) FROM Student s WHERE s.specialization = :specialization")
-    int countBySpecialization(@Param("specialization") Specialization specialization);
+    // find all
+    List<Student> findAll();
 
-    @Query("SELECT COUNT(s) FROM Student s WHERE s.specialization.code = :code")
-    long countBySpecializationCode(@Param("code") String code);
+    Page<Student> findAll(Pageable pageable);
 
-
-    @Query("SELECT COUNT(s) FROM Student s " +
-            "WHERE s.specialization.id = :specializationId " +
-            "AND s.entryYear = :entryYear")
-    int countBySpecializationAndEntryYear(
-            @Param("specializationId") Long specializationId,
-            @Param("entryYear") Integer entryYear);
+    // find by speciality
+    List<Student> findBySpeciality(Speciality speciality);
 }

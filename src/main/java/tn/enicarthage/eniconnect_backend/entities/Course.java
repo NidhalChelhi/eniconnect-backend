@@ -1,33 +1,46 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
-import lombok.*;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.LastModifiedBy;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import tn.enicarthage.eniconnect_backend.enums.Speciality;
+
+import java.time.LocalDateTime;
 
 @Entity
-@Getter
-@Setter
+@Table(name = "courses", indexes = {
+        @Index(name = "idx_course_speciality_level_semester", columnList = "speciality, level, semester")
+})
+@Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Table(name = "courses")
 public class Course {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false, unique = true)
+    @Column(name = "code", nullable = false, unique = true, length = 20)
     private String code;
 
-    private String description;
+    @Column(name = "name", nullable = false, length = 100)
+    private String name;
 
-    @CreatedBy
-    private String createdBy;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "speciality", nullable = false, length = 20)
+    private Speciality speciality;
 
-    @LastModifiedBy
-    private String updatedBy;
+    @Column(name = "semester", nullable = false)
+    private int semester; // 1 or 2
+
+    @Column(name = "level", nullable = false)
+    private int level; // 1, 2, or 3
+
+    @Column(name = "created_at", updatable = false)
+    @Builder.Default
+    private LocalDateTime createdAt = LocalDateTime.now();
+
+
 }

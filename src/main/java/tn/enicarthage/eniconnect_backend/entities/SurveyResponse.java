@@ -1,46 +1,45 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
-import lombok.*;
-import org.springframework.data.annotation.CreatedBy;
-import org.springframework.data.annotation.LastModifiedBy;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Getter
-@Setter
+@Table(name = "survey_responses")
+@Data
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-@Table(name = "survey_responses")
 public class SurveyResponse {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "survey_id", nullable = false)
-    private Survey survey;
-
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false)
     private Student student;
 
-    private LocalDateTime submittedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "survey_id", nullable = false)
+    private Survey survey;
 
-    @Column(nullable = false)
-    private Boolean isComplete;
+    @OneToMany(mappedBy = "response", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Answer> answers;
 
-    @OneToMany(mappedBy = "surveyResponse", cascade = CascadeType.ALL)
-    private List<CourseResponse> courseResponses;
+    @Column(length = 2000, columnDefinition = "TEXT")
+    private String openFeedback; // Free-form comment at the end
 
-    private String feedback; // For the final free-form feedback
+    @Column(name = "submitted_at")
+    @Builder.Default
+    private LocalDateTime submittedAt = LocalDateTime.now();
 
-    @CreatedBy
-    private String createdBy;
-
-    @LastModifiedBy
-    private String updatedBy;
+    // Ensures a student can't submit twice for the same survey
+    @Column(name = "is_submitted", nullable = false)
+    @Builder.Default
+    private boolean isSubmitted = false;
 }

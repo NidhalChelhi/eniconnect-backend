@@ -1,21 +1,31 @@
 package tn.enicarthage.eniconnect_backend.services;
 
-
-import tn.enicarthage.eniconnect_backend.dtos.base.StudentDTO;
-import tn.enicarthage.eniconnect_backend.dtos.survey.SurveyDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.stereotype.Service;
+import tn.enicarthage.eniconnect_backend.dtos.request.student.CreateStudentDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.student.UpdateStudentProfileDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 
 import java.util.List;
 
-
+@Service
 public interface StudentService {
-    StudentDTO getStudentById(Long id);
 
-    StudentDTO getStudentByMatricule(String matricule);
+    StudentDto getStudentById(Long id);
 
-    List<StudentDTO> getStudentsBySpecialization(String specializationCode);
+    StudentDto getStudentByEmail(String email);
 
-    StudentDTO getStudentByUserId(Long userId);
+    StudentDto getStudentByMatricule(String phoneNumber);
 
-    List<SurveyDTO> getSurveysForStudent(Long studentId);
+    List<StudentDto> getAllStudents();
+
+    Page<StudentDto> getAllStudents(Pageable pageable);
+
+    StudentDto createStudent(CreateStudentDto studentCreateDTO);
+
+    StudentDto updateStudentProfile(Long id, UpdateStudentProfileDto studentUpdateDTO);
+
+    void deleteStudent(Long id);
 
 }

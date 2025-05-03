@@ -2,23 +2,24 @@ package tn.enicarthage.eniconnect_backend.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import tn.enicarthage.eniconnect_backend.entities.Student;
+import tn.enicarthage.eniconnect_backend.entities.Survey;
 import tn.enicarthage.eniconnect_backend.entities.SurveyResponse;
 
-import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface SurveyResponseRepository extends JpaRepository<SurveyResponse, Long> {
-    Optional<SurveyResponse> findBySurveyIdAndStudentId(Long surveyId, Long studentId);
 
-    boolean existsBySurveyIdAndStudentId(Long surveyId, Long studentId);
+    // Check if student already submitted a survey
+    boolean existsByStudentAndSurvey(Student student, Survey survey);
 
-    List<SurveyResponse> findBySurveyId(Long surveyId);
+    // Find response with answers eager-loaded
+    @Query("SELECT sr FROM SurveyResponse sr LEFT JOIN FETCH sr.answers WHERE sr.id = :id")
+    Optional<SurveyResponse> findByIdWithAnswers(Long id);
 
-
-    @Query("SELECT COUNT(r) FROM SurveyResponse r WHERE r.survey.id = :surveyId")
-    int countBySurveyId(@Param("surveyId") Long surveyId);
-
-    @Query("SELECT r FROM SurveyResponse r JOIN FETCH r.student s JOIN FETCH s.user WHERE r.survey.id = :surveyId")
-    List<SurveyResponse> findWithStudentDetailsBySurveyId(@Param("surveyId") Long surveyId);
+    // Count completed surveys per student
+    @Query("SELECT COUNT(sr) FROM SurveyResponse sr WHERE sr.student = :student AND sr.isSubmitted = true")
+    long countCompletedSurveysByStudent(Student student);
 }
