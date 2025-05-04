@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.entities.Survey;
@@ -13,6 +14,7 @@ import tn.enicarthage.eniconnect_backend.repositories.CourseRepository;
 import tn.enicarthage.eniconnect_backend.repositories.SurveyRepository;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,6 +25,54 @@ public class SurveyServiceImpl implements SurveyService {
     private final SurveyRepository surveyRepository;
     private final SurveyMapper surveyMapper;
     private final CourseRepository courseRepository;
+
+    @Override
+    public SurveyDto updateSurveyDates(Long surveyId, UpdateSurveyDatesDto updateDatesDto) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new RuntimeException("Survey not found"));
+
+        // For published surveys
+        if (survey.isPublished()) {
+
+            // Additional validation for published surveys
+            if (updateDatesDto.newCloseDate() != null) {
+                LocalDateTime effectiveOpenDate = survey.getOpenDate() != null ?
+                        survey.getOpenDate() : LocalDateTime.now();
+
+                if (updateDatesDto.newCloseDate().isBefore(effectiveOpenDate)) {
+                    throw new IllegalArgumentException(
+                            "Close date must be after " +
+                                    (survey.getOpenDate() != null ?
+                                            "the existing open date (" + survey.getOpenDate() + ")" :
+                                            "the current time")
+                    );
+                }
+
+                if (updateDatesDto.newCloseDate().isBefore(LocalDateTime.now())) {
+                    throw new IllegalArgumentException(
+                            "New close date cannot be in the past");
+                }
+            }
+
+            survey.setCloseDate(updateDatesDto.newCloseDate());
+        }
+        // For unpublished surveys
+        else {
+            if (!updateDatesDto.isValid()) {
+                // Errors are already thrown by the DTO validation
+            }
+            survey.setOpenDate(updateDatesDto.newOpenDate());
+            survey.setCloseDate(updateDatesDto.newCloseDate());
+        }
+
+        // Final validation
+        if (survey.isPublished() && !survey.isValidForPublishing()) {
+            throw new IllegalStateException("These dates would make the published survey invalid");
+        }
+
+        Survey updatedSurvey = surveyRepository.save(survey);
+        return surveyMapper.toDto(updatedSurvey);
+    }
 
     @Override
     public SurveyDto getSurveyById(Long id) {

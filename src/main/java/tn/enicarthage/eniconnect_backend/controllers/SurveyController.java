@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
 
@@ -59,6 +60,14 @@ public class SurveyController {
                 ? surveyService.publishSurvey(id)
                 : surveyService.unpublishSurvey(id);
         return ResponseEntity.ok(surveyDto);
+    }
+
+    @PatchMapping("/{id}/Change_dates")
+    public ResponseEntity<SurveyDto> updateSurveyDates(
+            @PathVariable("id") Long surveyId,
+            @RequestBody UpdateSurveyDatesDto updateDatesDto) {
+        SurveyDto updatedSurvey = surveyService.updateSurveyDates(surveyId, updateDatesDto);
+        return ResponseEntity.ok(updatedSurvey);
     }
 
 }
