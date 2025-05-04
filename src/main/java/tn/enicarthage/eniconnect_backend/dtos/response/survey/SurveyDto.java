@@ -19,7 +19,12 @@ public record SurveyDto(
         LocalDateTime openDate,
         LocalDateTime closeDate,
         Set<Course> courses,
-        boolean isActive ,
+        boolean isActive,
         List<SurveyResponse> responses
 ) {
+    public SurveyDto {
+        if (openDate != null && closeDate != null && openDate.isAfter(closeDate)) {
+            throw new IllegalArgumentException("Open date must be before close date");
+        }
+    }
 }

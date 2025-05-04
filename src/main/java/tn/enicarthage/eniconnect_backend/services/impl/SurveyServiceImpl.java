@@ -23,7 +23,7 @@ public class SurveyServiceImpl implements SurveyService {
     private final SurveyRepository surveyRepository;
     private final SurveyMapper surveyMapper;
     private final CourseRepository courseRepository;
-    
+
     @Override
     public SurveyDto getSurveyById(Long id) {
         Survey survey = surveyRepository.findById(id).orElseThrow(() -> new RuntimeException("Survey not found"));
@@ -64,6 +64,26 @@ public class SurveyServiceImpl implements SurveyService {
         surveyRepository.findById(id).orElseThrow(() -> new RuntimeException("Survey not found"));
         surveyRepository.deleteById(id);
 
+    }
+
+    @Override
+    public SurveyDto publishSurvey(Long id) {
+        Survey survey = surveyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Survey not found"));
+
+        survey.publish(); // Uses the new publish() method with validation
+        Survey savedSurvey = surveyRepository.save(survey);
+        return surveyMapper.toDto(savedSurvey);
+    }
+
+    @Override
+    public SurveyDto unpublishSurvey(Long id) {
+        Survey survey = surveyRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Survey not found"));
+
+        survey.unpublish();
+        Survey savedSurvey = surveyRepository.save(survey);
+        return surveyMapper.toDto(savedSurvey);
     }
 
 

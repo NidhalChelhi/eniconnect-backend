@@ -69,10 +69,34 @@ public class Survey {
 
     // Helper method to check if survey is currently active
     public boolean isActive() {
+        if (!isPublished) {
+            return false;
+        }
+
         LocalDateTime now = LocalDateTime.now();
-        return isPublished &&
-                (openDate == null || now.isAfter(openDate)) &&
-                (closeDate == null || now.isBefore(closeDate));
+        boolean isOpen = openDate == null || now.isAfter(openDate);
+        boolean isNotClosed = closeDate == null || now.isBefore(closeDate);
+
+        return isOpen && isNotClosed;
+    }
+
+    public boolean isValidForPublishing() {
+        if (openDate != null && closeDate != null) {
+            return openDate.isBefore(closeDate);
+        }
+        return true;
+    }
+
+    public void publish() {
+        if (!isValidForPublishing()) {
+            throw new IllegalStateException("Cannot publish survey - open date must be before close date");
+        }
+        this.isPublished = true;
+    }
+
+    // Method to unpublish the survey
+    public void unpublish() {
+        this.isPublished = false;
     }
 
     // Helper method to check if student has completed this survey

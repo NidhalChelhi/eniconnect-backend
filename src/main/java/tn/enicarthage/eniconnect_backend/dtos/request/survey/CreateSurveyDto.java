@@ -15,4 +15,10 @@ public record CreateSurveyDto(
         LocalDateTime openDate,
         LocalDateTime closeDate
 ) {
+        // Add validation for dates
+        public CreateSurveyDto {
+                if (openDate != null && closeDate != null && openDate.isAfter(closeDate)) {
+                        throw new IllegalArgumentException("Open date must be before close date");
+                }
+        }
 }

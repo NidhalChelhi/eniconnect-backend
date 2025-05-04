@@ -105,30 +105,55 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     private void seedSurveys() {
-        // Create surveys for each semester
+        LocalDateTime now = LocalDateTime.now();
+
+        // Create surveys with different states
         List<Survey> surveys = List.of(
-                createSurvey("Évaluation S1 2023/2024 - Génie Informatique",
-                        Speciality.INFO, 1, 1, "2023/2024", true),
-                createSurvey("Évaluation S2 2023/2024 - Génie Informatique",
-                        Speciality.INFO, 2, 1, "2023/2024", false),
-                createSurvey("Évaluation S1 2023/2024 - GSI",
-                        Speciality.GSI, 1, 1, "2023/2024", true)
+                // Draft survey (not published, no dates)
+                createSurvey("Brouillon - Évaluation S1 2023/2024 - Génie Informatique",
+                        Speciality.INFO, 1, 1, "2023/2024", false, null, null),
+
+                // Scheduled survey (published but not yet open)
+                createSurvey("Planifiée - Évaluation S1 2023/2024 - GSI",
+                        Speciality.GSI, 1, 1, "2023/2024", true,
+                        now.plusDays(3), now.plusDays(10)),
+
+                // Active survey (published and within date range)
+                createSurvey("Active - Évaluation S1 2023/2024 - Génie Informatique",
+                        Speciality.INFO, 1, 1, "2023/2024", true,
+                        now.minusDays(2), now.plusDays(5)),
+
+                // Closed survey (published but past closing date)
+                createSurvey("Terminée - Évaluation S2 2022/2023 - Génie Informatique",
+                        Speciality.INFO, 2, 1, "2022/2023", true,
+                        now.minusMonths(3), now.minusMonths(2)),
+
+                // Published survey with no dates (always active)
+                createSurvey("Ouverte - Évaluation S1 2023/2024 - Génie Mécanique",
+                        Speciality.MECA, 1, 1, "2023/2024", true,
+                        null, null),
+
+                // Survey with invalid dates (for testing validation)
+                createSurvey("Invalide - Test Dates - Génie Logiciel",
+                        Speciality.GSIL, 1, 1, "2023/2024", false,
+                        now.plusDays(5), now.minusDays(5))
         );
 
-        // Assign courses to each survey
+        // Assign courses to each survey and save
         surveys.forEach(survey -> {
-            Set<Course> courses = Set.copyOf(
-                    courseRepository.findBySpecialityAndLevelAndSemester(
-                            survey.getSpeciality(),
-                            survey.getLevel(),
-                            survey.getSemester()
-                    )
-            );
-            survey.setTargetCourses(courses);
-            surveyRepository.save(survey);
+            if (survey.isValidForPublishing()) {
+                Set<Course> courses = Set.copyOf(
+                        courseRepository.findBySpecialityAndLevelAndSemester(
+                                survey.getSpeciality(),
+                                survey.getLevel(),
+                                survey.getSemester()
+                        )
+                );
+                survey.setTargetCourses(courses);
+                surveyRepository.save(survey);
+            }
         });
     }
-
 
     // Helper methods
     private String generateMatricule(int index, Speciality speciality) {
@@ -153,17 +178,26 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     private Survey createSurvey(String title, Speciality speciality, int semester,
-                                int level, String schoolYear, boolean isPublished) {
-        return Survey.builder()
+                                int level, String schoolYear, boolean isPublished,
+                                LocalDateTime openDate, LocalDateTime closeDate) {
+        Survey survey = Survey.builder()
                 .title(title)
                 .speciality(speciality)
                 .semester(semester)
                 .level(level)
                 .schoolYear(schoolYear)
                 .isPublished(isPublished)
-                .openDate(LocalDateTime.now().minusDays(7))
-                .closeDate(isPublished ? LocalDateTime.now().plusDays(7) : null)
+                .openDate(openDate)
+                .closeDate(closeDate)
+                .createdAt(LocalDateTime.now())
                 .build();
+
+        // Automatically publish if dates are valid
+        if (isPublished && survey.isValidForPublishing()) {
+            survey.publish();
+        }
+
+        return survey;
     }
 
     private Speciality getRandomSpeciality() {

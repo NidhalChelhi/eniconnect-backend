@@ -18,8 +18,8 @@ public class QuestionController {
     private final QuestionService questionService;
 
     @GetMapping()
-    public ResponseEntity<List<QuestionTemplate>>  getAllQuestions() {
-        List<QuestionTemplate> questions = questionService.getAllQuestions() ;
+    public ResponseEntity<List<QuestionTemplate>> getAllQuestions() {
+        List<QuestionTemplate> questions = questionService.getAllQuestions();
         return ResponseEntity.ok(questions);
     }
 
@@ -28,6 +28,7 @@ public class QuestionController {
         QuestionTemplate Savedquestion = questionService.createQuestion(question);
         return ResponseEntity.status(HttpStatus.CREATED).body(Savedquestion);
     }
+
     @PutMapping("/{id}")
     public ResponseEntity<QuestionTemplate> updateQuestion(@RequestBody QuestionTemplateDto question, @PathVariable int id) {
         QuestionTemplate updatedQuestion = questionService.updateeQuestionById(id, question);
@@ -39,7 +40,6 @@ public class QuestionController {
         questionService.DeleteQuestion(id);
         return ResponseEntity.noContent().build();
     }
-
 
 
 }
