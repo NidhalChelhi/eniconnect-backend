@@ -4,20 +4,15 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
-import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.*;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
-import tn.enicarthage.eniconnect_backend.entities.Course;
-import tn.enicarthage.eniconnect_backend.entities.Survey;
+import tn.enicarthage.eniconnect_backend.entities.*;
 import tn.enicarthage.eniconnect_backend.mappers.SurveyMapper;
-import tn.enicarthage.eniconnect_backend.repositories.CourseRepository;
-import tn.enicarthage.eniconnect_backend.repositories.SurveyRepository;
+import tn.enicarthage.eniconnect_backend.repositories.*;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -27,93 +22,44 @@ public class SurveyServiceImpl implements SurveyService {
     private final CourseRepository courseRepository;
 
     @Override
-    public SurveyDto updateSurveyDates(Long surveyId, UpdateSurveyDatesDto updateDatesDto) {
-        Survey survey = surveyRepository.findById(surveyId)
+    public SurveyDto getSurveyById(Long id) {
+        return surveyRepository.findById(id)
+                .map(surveyMapper::toDto)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
-
-        // For published surveys
-        if (survey.isPublished()) {
-
-            // Additional validation for published surveys
-            if (updateDatesDto.newCloseDate() != null) {
-                LocalDateTime effectiveOpenDate = survey.getOpenDate() != null ?
-                        survey.getOpenDate() : LocalDateTime.now();
-
-                if (updateDatesDto.newCloseDate().isBefore(effectiveOpenDate)) {
-                    throw new IllegalArgumentException(
-                            "Close date must be after " +
-                                    (survey.getOpenDate() != null ?
-                                            "the existing open date (" + survey.getOpenDate() + ")" :
-                                            "the current time")
-                    );
-                }
-
-                if (updateDatesDto.newCloseDate().isBefore(LocalDateTime.now())) {
-                    throw new IllegalArgumentException(
-                            "New close date cannot be in the past");
-                }
-            }
-
-            survey.setCloseDate(updateDatesDto.newCloseDate());
-        }
-        // For unpublished surveys
-        else {
-            if (!updateDatesDto.isValid()) {
-                // Errors are already thrown by the DTO validation
-            }
-            survey.setOpenDate(updateDatesDto.newOpenDate());
-            survey.setCloseDate(updateDatesDto.newCloseDate());
-        }
-
-        // Final validation
-        if (survey.isPublished() && !survey.isValidForPublishing()) {
-            throw new IllegalStateException("These dates would make the published survey invalid");
-        }
-
-        Survey updatedSurvey = surveyRepository.save(survey);
-        return surveyMapper.toDto(updatedSurvey);
     }
 
     @Override
-    public SurveyDto getSurveyById(Long id) {
-        Survey survey = surveyRepository.findById(id).orElseThrow(() -> new RuntimeException("Survey not found"));
-        return surveyMapper.toDto(survey);
-    }
-
     public List<SurveyDto> getAllSurveys() {
-        return surveyRepository.findAll().
-                stream().
-                map(surveyMapper::toDto).
-                toList();
+        return surveyRepository.findAll().stream()
+                .map(surveyMapper::toDto)
+                .toList();
     }
 
     @Override
     public Page<SurveyDto> getAllSurveys(Pageable pageable) {
-        Page<Survey> Surveys = surveyRepository.findAll(pageable);
-        return Surveys.map(surveyMapper::toDto);
+        return surveyRepository.findAll(pageable)
+                .map(surveyMapper::toDto);
     }
 
     @Override
-    public SurveyDto createSurvey(CreateSurveyDto createSurveyDto) {
+    public SurveyDto createSurvey(CreateSurveyDto dto) {
+        // Check for duplicate surveys
+        if (surveyRepository.existsBySpecialityAndLevelAndSemesterAndSchoolYear(
+                dto.speciality(), dto.level(), dto.semester(), dto.schoolYear())) {
+            throw new IllegalArgumentException("Survey already exists for these criteria");
+        }
 
-        List<Course> courses = courseRepository.findBySpecialityAndLevelAndSemester(
-                createSurveyDto.speciality(),
-                createSurveyDto.level(),
-                createSurveyDto.semester()
-        );
+        // Get related courses
+        Set<Course> courses = new HashSet<>(courseRepository.findBySpecialityAndLevelAndSemester(
+                dto.speciality(), dto.level(), dto.semester()));
 
-        Set<Course> coursesSet = new HashSet<>(courses);
-
-        Survey survey = surveyMapper.toEntity(createSurveyDto, coursesSet);
-        Survey savedSurvey = surveyRepository.save(survey);
-        return surveyMapper.toDto(savedSurvey);
+        Survey survey = surveyMapper.toEntity(dto, courses);
+        return surveyMapper.toDto(surveyRepository.save(survey));
     }
 
     @Override
     public void deleteSurvey(Long id) {
-        surveyRepository.findById(id).orElseThrow(() -> new RuntimeException("Survey not found"));
         surveyRepository.deleteById(id);
-
     }
 
     @Override
@@ -121,9 +67,8 @@ public class SurveyServiceImpl implements SurveyService {
         Survey survey = surveyRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
-        survey.publish(); // Uses the new publish() method with validation
-        Survey savedSurvey = surveyRepository.save(survey);
-        return surveyMapper.toDto(savedSurvey);
+        survey.publish();
+        return surveyMapper.toDto(surveyRepository.save(survey));
     }
 
     @Override
@@ -132,9 +77,34 @@ public class SurveyServiceImpl implements SurveyService {
                 .orElseThrow(() -> new RuntimeException("Survey not found"));
 
         survey.unpublish();
-        Survey savedSurvey = surveyRepository.save(survey);
-        return surveyMapper.toDto(savedSurvey);
+        return surveyMapper.toDto(surveyRepository.save(survey));
     }
 
+    @Override
+    public SurveyDto updateSurveyDates(Long surveyId, UpdateSurveyDatesDto dto) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new RuntimeException("Survey not found"));
 
+        // For published surveys, we only allow extending the close date
+        if (survey.isPublished()) {
+            if (dto.newOpenDate() != null) {
+                throw new IllegalArgumentException("Cannot change open date for published survey");
+            }
+
+            if (dto.newCloseDate() != null) {
+                LocalDateTime now = LocalDateTime.now();
+                if (dto.newCloseDate().isBefore(now)) {
+                    throw new IllegalArgumentException("Close date must be in the future");
+                }
+                survey.setCloseDate(dto.newCloseDate());
+            }
+        }
+        // For unpublished surveys, allow full date changes
+        else {
+            survey.setOpenDate(dto.newOpenDate());
+            survey.setCloseDate(dto.newCloseDate());
+        }
+
+        return surveyMapper.toDto(surveyRepository.save(survey));
+    }
 }

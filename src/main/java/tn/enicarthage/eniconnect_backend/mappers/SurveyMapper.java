@@ -5,9 +5,7 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.entities.Survey;
-import tn.enicarthage.eniconnect_backend.entities.SurveyResponse;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -26,22 +24,23 @@ public class SurveyMapper {
                 survey.getCloseDate(),
                 survey.getTargetCourses(),
                 survey.isActive(),
-                survey.getResponses()) ;
+                survey.getResponses(),
+                survey.getCreatedAt()
+        );
     }
 
-    public Survey toEntity(CreateSurveyDto createSurveyDto, Set<Course> courses) {
-        Survey survey = new Survey();
-        survey.setTitle(createSurveyDto.title());
-        survey.setSpeciality(createSurveyDto.speciality());
-        survey.setSemester(createSurveyDto.semester());
-        survey.setLevel(createSurveyDto.level());
-        survey.setSchoolYear(createSurveyDto.schoolYear());
-        survey.setPublished(false);
-        survey.setOpenDate(createSurveyDto.openDate());
-        survey.setCloseDate(createSurveyDto.closeDate());
-        survey.setCreatedAt(LocalDateTime.now());
-        survey.setTargetCourses(courses);
-        survey.setResponses(List.of());
-        return survey;
+    public Survey toEntity(CreateSurveyDto dto, Set<Course> courses) {
+        return Survey.builder()
+                .title(dto.title())
+                .speciality(dto.speciality())
+                .semester(dto.semester())
+                .level(dto.level())
+                .schoolYear(dto.schoolYear())
+                .isPublished(false)
+                .openDate(dto.openDate())
+                .closeDate(dto.closeDate())
+                .targetCourses(courses)
+                .responses(List.of())
+                .build();
     }
 }

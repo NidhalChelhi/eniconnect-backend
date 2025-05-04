@@ -1,10 +1,7 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
 
 import java.time.LocalDateTime;
@@ -25,23 +22,23 @@ public class Survey {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "title", nullable = false, length = 100)
+    @Column(nullable = false, length = 100)
     private String title;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "speciality", nullable = false, length = 20)
+    @Column(nullable = false, length = 20)
     private Speciality speciality;
 
-    @Column(name = "semester", nullable = false)
+    @Column(nullable = false)
     private int semester; // 1 or 2
 
-    @Column(name = "level", nullable = false)
+    @Column(nullable = false)
     private int level; // 1, 2, or 3
 
     @Column(name = "school_year", nullable = false, length = 9)
     private String schoolYear; // Format: "2023/2024"
 
-    @Column(name = "is_published", nullable = false)
+    @Column(nullable = false)
     @Builder.Default
     private boolean isPublished = false;
 
@@ -53,7 +50,7 @@ public class Survey {
 
     @Column(name = "created_at", updatable = false)
     @Builder.Default
-        private LocalDateTime createdAt = LocalDateTime.now();
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @ManyToMany
     @JoinTable(
@@ -66,12 +63,9 @@ public class Survey {
     @OneToMany(mappedBy = "survey", cascade = CascadeType.REMOVE)
     private List<SurveyResponse> responses;
 
-
-    // Helper method to check if survey is currently active
+    // Business logic methods
     public boolean isActive() {
-        if (!isPublished) {
-            return false;
-        }
+        if (!isPublished) return false;
 
         LocalDateTime now = LocalDateTime.now();
         boolean isOpen = openDate == null || now.isAfter(openDate);
@@ -80,26 +74,14 @@ public class Survey {
         return isOpen && isNotClosed;
     }
 
-    public boolean isValidForPublishing() {
-        if (openDate != null && closeDate != null) {
-            return openDate.isBefore(closeDate);
-        }
-        return true;
-    }
-
     public void publish() {
-        if (!isValidForPublishing()) {
-            throw new IllegalStateException("Cannot publish survey - open date must be before close date");
-        }
         this.isPublished = true;
     }
 
-    // Method to unpublish the survey
     public void unpublish() {
         this.isPublished = false;
     }
 
-    // Helper method to check if student has completed this survey
     public boolean isCompletedByStudent(Student student) {
         return responses.stream()
                 .anyMatch(r -> r.getStudent().equals(student) && r.isSubmitted());

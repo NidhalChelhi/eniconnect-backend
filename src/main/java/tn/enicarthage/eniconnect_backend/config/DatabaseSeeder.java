@@ -9,11 +9,14 @@ import tn.enicarthage.eniconnect_backend.entities.QuestionTemplate;
 import tn.enicarthage.eniconnect_backend.entities.Student;
 import tn.enicarthage.eniconnect_backend.entities.Survey;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
-import tn.enicarthage.eniconnect_backend.repositories.*;
+import tn.enicarthage.eniconnect_backend.repositories.CourseRepository;
+import tn.enicarthage.eniconnect_backend.repositories.QuestionTemplateRepository;
+import tn.enicarthage.eniconnect_backend.repositories.StudentRepository;
+import tn.enicarthage.eniconnect_backend.repositories.SurveyRepository;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.IntStream;
 
@@ -25,7 +28,6 @@ public class DatabaseSeeder implements CommandLineRunner {
     private final StudentRepository studentRepository;
     private final QuestionTemplateRepository questionTemplateRepository;
     private final SurveyRepository surveyRepository;
-    private final SurveyResponseRepository surveyResponseRepository;
 
     @Override
     @Transactional
@@ -68,7 +70,7 @@ public class DatabaseSeeder implements CommandLineRunner {
                     Speciality speciality = getRandomSpeciality();
                     String groupe = String.valueOf((char) ('A' + ThreadLocalRandom.current().nextInt(4)));
                     String gender = ThreadLocalRandom.current().nextBoolean() ? "male" : "female";
-                    int avatarId = ThreadLocalRandom.current().nextInt(1, 51); // Random avatar 1-50
+                    int avatarId = ThreadLocalRandom.current().nextInt(1, 51);
 
                     return Student.builder()
                             .matricule(generateMatricule(i, speciality))
@@ -105,54 +107,122 @@ public class DatabaseSeeder implements CommandLineRunner {
     }
 
     private void seedSurveys() {
+        // Get all courses grouped by speciality, level and semester
+        List<Course> infoL1S1Courses = courseRepository.findBySpecialityAndLevelAndSemester(Speciality.INFO, 1, 1);
+        List<Course> infoL1S2Courses = courseRepository.findBySpecialityAndLevelAndSemester(Speciality.INFO, 1, 2);
+        List<Course> infoL2S1Courses = courseRepository.findBySpecialityAndLevelAndSemester(Speciality.INFO, 2, 1);
+        List<Course> gsiL1S1Courses = courseRepository.findBySpecialityAndLevelAndSemester(Speciality.GSI, 1, 1);
+        List<Course> mecaL1S2Courses = courseRepository.findBySpecialityAndLevelAndSemester(Speciality.MECA, 1, 2);
+
         LocalDateTime now = LocalDateTime.now();
 
-        // Create surveys with different states
         List<Survey> surveys = List.of(
-                // Draft survey (not published, no dates)
-                createSurvey("Brouillon - Évaluation S1 2023/2024 - Génie Informatique",
-                        Speciality.INFO, 1, 1, "2023/2024", false, null, null),
+                // 1. Published survey currently active (no close date)
+                createSurvey(
+                        "Évaluation Semestre 1 - INFO 1ère année",
+                        Speciality.INFO,
+                        1,
+                        1,
+                        "2023/2024",
+                        true,
+                        now.minusDays(7),
+                        null,
+                        infoL1S1Courses
+                ),
 
-                // Scheduled survey (published but not yet open)
-                createSurvey("Planifiée - Évaluation S1 2023/2024 - GSI",
-                        Speciality.GSI, 1, 1, "2023/2024", true,
-                        now.plusDays(3), now.plusDays(10)),
+                // 2. Published survey currently active with close date in future
+                createSurvey(
+                        "Évaluation Semestre 2 - INFO 1ère année",
+                        Speciality.INFO,
+                        2,
+                        1,
+                        "2023/2024",
+                        true,
+                        now.minusDays(3),
+                        now.plusDays(7),
+                        infoL1S2Courses
+                ),
 
-                // Active survey (published and within date range)
-                createSurvey("Active - Évaluation S1 2023/2024 - Génie Informatique",
-                        Speciality.INFO, 1, 1, "2023/2024", true,
-                        now.minusDays(2), now.plusDays(5)),
+                // 3. Published survey that has closed
+                createSurvey(
+                        "Évaluation Semestre 1 - INFO 2ème année (2022/2023)",
+                        Speciality.INFO,
+                        1,
+                        2,
+                        "2022/2023",
+                        true,
+                        now.minusMonths(3),
+                        now.minusMonths(2),
+                        infoL2S1Courses
+                ),
 
-                // Closed survey (published but past closing date)
-                createSurvey("Terminée - Évaluation S2 2022/2023 - Génie Informatique",
-                        Speciality.INFO, 2, 1, "2022/2023", true,
-                        now.minusMonths(3), now.minusMonths(2)),
+                // 4. Published survey not yet open
+                createSurvey(
+                        "Évaluation Semestre 1 - GSI 1ère année",
+                        Speciality.GSI,
+                        1,
+                        1,
+                        "2023/2024",
+                        true,
+                        now.plusDays(5),
+                        now.plusDays(12),
+                        gsiL1S1Courses
+                ),
 
-                // Published survey with no dates (always active)
-                createSurvey("Ouverte - Évaluation S1 2023/2024 - Génie Mécanique",
-                        Speciality.MECA, 1, 1, "2023/2024", true,
-                        null, null),
+                // 5. Unpublished survey (draft)
+                createSurvey(
+                        "Évaluation Semestre 2 - MECA 1ère année (Draft)",
+                        Speciality.MECA,
+                        2,
+                        1,
+                        "2023/2024",
+                        false,
+                        now.plusDays(10),
+                        now.plusDays(20),
+                        mecaL1S2Courses
+                ),
 
-                // Survey with invalid dates (for testing validation)
-                createSurvey("Invalide - Test Dates - Génie Logiciel",
-                        Speciality.GSIL, 1, 1, "2023/2024", false,
-                        now.plusDays(5), now.minusDays(5))
+                // 6. Published survey with no dates (always active)
+                createSurvey(
+                        "Feedback Général - INFO 1ère année",
+                        Speciality.INFO,
+                        1,
+                        1,
+                        "2023/2024",
+                        true,
+                        null,
+                        null,
+                        infoL1S1Courses
+                ),
+
+                // 7. Survey from previous school year
+                createSurvey(
+                        "Évaluation Semestre 1 - INFO 1ère année (2022/2023)",
+                        Speciality.INFO,
+                        1,
+                        1,
+                        "2022/2023",
+                        true,
+                        now.minusYears(1),
+                        now.minusYears(1).plusDays(14),
+                        infoL1S1Courses
+                ),
+
+                // 8. Survey for next semester (planned)
+                createSurvey(
+                        "Évaluation Semestre 1 - INFO 1ère année (2024/2025)",
+                        Speciality.INFO,
+                        1,
+                        1,
+                        "2024/2025",
+                        false,
+                        now.plusMonths(6),
+                        now.plusMonths(6).plusDays(14),
+                        infoL1S1Courses
+                )
         );
 
-        // Assign courses to each survey and save
-        surveys.forEach(survey -> {
-            if (survey.isValidForPublishing()) {
-                Set<Course> courses = Set.copyOf(
-                        courseRepository.findBySpecialityAndLevelAndSemester(
-                                survey.getSpeciality(),
-                                survey.getLevel(),
-                                survey.getSemester()
-                        )
-                );
-                survey.setTargetCourses(courses);
-                surveyRepository.save(survey);
-            }
-        });
+        surveyRepository.saveAll(surveys);
     }
 
     // Helper methods
@@ -177,10 +247,18 @@ public class DatabaseSeeder implements CommandLineRunner {
                 .build();
     }
 
-    private Survey createSurvey(String title, Speciality speciality, int semester,
-                                int level, String schoolYear, boolean isPublished,
-                                LocalDateTime openDate, LocalDateTime closeDate) {
-        Survey survey = Survey.builder()
+    private Survey createSurvey(
+            String title,
+            Speciality speciality,
+            int semester,
+            int level,
+            String schoolYear,
+            boolean isPublished,
+            LocalDateTime openDate,
+            LocalDateTime closeDate,
+            List<Course> courses) {
+
+        return Survey.builder()
                 .title(title)
                 .speciality(speciality)
                 .semester(semester)
@@ -189,15 +267,9 @@ public class DatabaseSeeder implements CommandLineRunner {
                 .isPublished(isPublished)
                 .openDate(openDate)
                 .closeDate(closeDate)
-                .createdAt(LocalDateTime.now())
+                .targetCourses(new HashSet<>(courses))
+                .responses(List.of())
                 .build();
-
-        // Automatically publish if dates are valid
-        if (isPublished && survey.isValidForPublishing()) {
-            survey.publish();
-        }
-
-        return survey;
     }
 
     private Speciality getRandomSpeciality() {
