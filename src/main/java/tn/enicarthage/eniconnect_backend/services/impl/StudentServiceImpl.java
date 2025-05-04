@@ -5,15 +5,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import tn.enicarthage.eniconnect_backend.dtos.request.student.CreateStudentDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.student.UpdateStudentProfileDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 import tn.enicarthage.eniconnect_backend.entities.Student;
+import tn.enicarthage.eniconnect_backend.enums.Speciality;
 import tn.enicarthage.eniconnect_backend.mappers.StudentMapper;
 import tn.enicarthage.eniconnect_backend.repositories.StudentRepository;
 import tn.enicarthage.eniconnect_backend.services.StudentService;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,7 +68,7 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public StudentDto createStudent(CreateStudentDto studentCreateDTO) {
         if (studentRepository.existsByEmail(studentCreateDTO.email()) || studentRepository.existsByMatricule(studentCreateDTO.matricule())) {
-            throw new RuntimeException("Student already exists");
+            throw new RuntimeException("Student with ");
         }
 
         Student student = studentMapper.toEntity(studentCreateDTO);
@@ -84,5 +91,45 @@ public class StudentServiceImpl implements StudentService {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found"));
         studentRepository.delete(student);
+    }
+
+    @Override
+    @Transactional
+    public List<StudentDto> createStudentsFromCsv(MultipartFile file) {
+        try (InputStream is = file.getInputStream();
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+
+            List<CreateStudentDto> dtos = new ArrayList<>();
+            String line;
+            boolean firstLine = true;
+
+            while ((line = br.readLine()) != null) {
+                if (firstLine) {
+                    firstLine = false;
+                    continue; // Skip header
+                }
+
+                String[] values = line.split(",");
+                CreateStudentDto dto = new CreateStudentDto(
+                        values[0].trim(), // matricule
+                        values[1].trim(), // firstName
+                        values[2].trim(), // lastName
+                        values[3].trim(), // email
+                        Speciality.valueOf(values[4].trim()), // speciality
+                        Integer.parseInt(values[5].trim()), // currentLevel
+                        values[6].trim(), // groupe
+                        values[7].trim(), // entrySchoolYear
+                        values.length > 8 ? values[8].trim() : null // gender
+                );
+                dtos.add(dto);
+            }
+
+            return dtos.stream()
+                    .map(this::createStudent)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse CSV file", e);
+        }
     }
 }

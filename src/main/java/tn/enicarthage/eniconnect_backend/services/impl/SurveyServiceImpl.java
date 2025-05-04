@@ -161,9 +161,7 @@ public class SurveyServiceImpl implements SurveyService {
 
         // Get all questions in order
         List<QuestionTemplate> questions = questionTemplateRepository.findAllOrdered();
-        if (questions.size() != 8) {
-            throw new IllegalStateException("Expected exactly 8 questions");
-        }
+
 
         // Create survey response
         SurveySubmission response = SurveySubmission.builder()
@@ -176,11 +174,9 @@ public class SurveyServiceImpl implements SurveyService {
         // Create answers for each course and question
         List<Answer> answers = new ArrayList<>();
         for (CreateSurveySubmissionDto.CourseResponseDto courseResponse : createSurveySubmissionDto.courseResponses()) {
-            if (courseResponse.answers().size() != 8) {
-                throw new IllegalArgumentException("Each course must have exactly 8 answers");
-            }
 
-            for (int i = 0; i < 8; i++) {
+
+            for (int i = 0; i < questions.size(); i++) {
                 Answer answer = Answer.builder()
                         .submission(response)
                         .question(questions.get(i))

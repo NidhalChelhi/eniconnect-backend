@@ -8,6 +8,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import tn.enicarthage.eniconnect_backend.dtos.request.course.CreateCourseDto;
 import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.services.CourseService;
@@ -60,6 +61,12 @@ public class CourseController {
     public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
         courseService.deleteCourse(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<List<Course>> createCoursesFromCsv(@RequestParam("file") MultipartFile file) {
+        List<Course> createdCourses = courseService.createCoursesFromCsv(file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdCourses);
     }
 
 }

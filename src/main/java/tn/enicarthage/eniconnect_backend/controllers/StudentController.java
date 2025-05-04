@@ -7,6 +7,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import tn.enicarthage.eniconnect_backend.dtos.request.student.CreateStudentDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.student.UpdateStudentProfileDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
@@ -75,6 +76,12 @@ public class StudentController {
     public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
         studentService.deleteStudent(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/batch")
+    public ResponseEntity<List<StudentDto>> createStudentsFromCsv(@RequestParam("file") MultipartFile file) {
+        List<StudentDto> createdStudents = studentService.createStudentsFromCsv(file);
+        return ResponseEntity.status(HttpStatus.CREATED).body(createdStudents);
     }
 
 }

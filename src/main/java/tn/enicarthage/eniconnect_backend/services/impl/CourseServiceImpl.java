@@ -5,15 +5,22 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import tn.enicarthage.eniconnect_backend.dtos.request.course.CreateCourseDto;
 import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.entities.Survey;
+import tn.enicarthage.eniconnect_backend.enums.Speciality;
 import tn.enicarthage.eniconnect_backend.exceptions.ResourceNotFoundException;
 import tn.enicarthage.eniconnect_backend.repositories.CourseRepository;
 import tn.enicarthage.eniconnect_backend.repositories.SurveyRepository;
 import tn.enicarthage.eniconnect_backend.services.CourseService;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -69,6 +76,42 @@ public class CourseServiceImpl implements CourseService {
         surveys.forEach(survey -> survey.getTargetCourses().remove(course));
 
         courseRepository.delete(course);
+    }
+
+    @Override
+    @Transactional
+    public List<Course> createCoursesFromCsv(MultipartFile file) {
+        try (InputStream is = file.getInputStream();
+             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+
+            List<CreateCourseDto> dtos = new ArrayList<>();
+            String line;
+            boolean firstLine = true;
+
+            while ((line = br.readLine()) != null) {
+                if (firstLine) {
+                    firstLine = false;
+                    continue; // Skip header
+                }
+
+                String[] values = line.split(",");
+                CreateCourseDto dto = new CreateCourseDto(
+                        values[0].trim(), // code
+                        values[1].trim(), // name
+                        Speciality.valueOf(values[2].trim()), // speciality
+                        Integer.parseInt(values[3].trim()), // semester
+                        Integer.parseInt(values[4].trim()) // level
+                );
+                dtos.add(dto);
+            }
+
+            return dtos.stream()
+                    .map(this::createCourse)
+                    .collect(Collectors.toList());
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to parse CSV file", e);
+        }
     }
 
 
