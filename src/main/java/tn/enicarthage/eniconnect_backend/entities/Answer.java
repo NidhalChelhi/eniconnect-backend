@@ -18,8 +18,8 @@ public class Answer {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "response_id", nullable = false)
-    private SurveyResponse response;
+    @JoinColumn(name = "submission_id", nullable = false)
+    private SurveySubmission submission;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "question_id", nullable = false)
@@ -27,8 +27,8 @@ public class Answer {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
-    private Course course; // Which course this answer evaluates
+    private Course course;
 
     @Column(nullable = false)
-    private int rating; // 1-4 (Likert scale)
+    private int rating;
 }

@@ -10,12 +10,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
-@Table(name = "survey_responses")
+@Table(name = "survey_submissions")
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class SurveyResponse {
+public class SurveySubmission {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,7 +28,7 @@ public class SurveyResponse {
     @JoinColumn(name = "survey_id", nullable = false)
     private Survey survey;
 
-    @OneToMany(mappedBy = "response", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "submission", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Answer> answers;
 
     @Column(length = 2000, columnDefinition = "TEXT")

@@ -6,8 +6,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import tn.enicarthage.eniconnect_backend.dtos.request.survey.*;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
 
 import java.util.List;
@@ -61,4 +64,28 @@ public class SurveyController {
             @RequestBody UpdateSurveyDatesDto dto) {
         return ResponseEntity.ok(surveyService.updateSurveyDates(id, dto));
     }
+
+
+    @PostMapping("/{id}/respond/{studentId}")
+    public ResponseEntity<SurveySubmissionDetailsDto> submitSurveyResponse(
+            @PathVariable("id") Long id,
+            @RequestBody CreateSurveySubmissionDto createSurveySubmissionDto,
+            @PathVariable("studentId") Long studentId) {
+        return ResponseEntity.ok(surveyService.submitSurveyResponse(id, createSurveySubmissionDto, studentId));
+    }
+
+    @GetMapping("/{surveyId}/responses/{studentId}")
+    public ResponseEntity<SurveySubmissionDetailsDto> getStudentResponseForSurvey(
+            @PathVariable Long surveyId,
+            @PathVariable Long studentId) {
+        return ResponseEntity.ok(surveyService.getStudentResponseForSurvey(surveyId, studentId));
+    }
+
+    @GetMapping("/active/{studentId}")
+    public ResponseEntity<List<SurveyDto>> getActiveSurveysForStudent(
+            @PathVariable("studentId") Long studentId) {
+        return ResponseEntity.ok(surveyService.getActiveSurveysForStudent(studentId));
+    }
+
+
 }

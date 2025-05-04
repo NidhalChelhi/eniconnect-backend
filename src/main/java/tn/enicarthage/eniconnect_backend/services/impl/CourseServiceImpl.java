@@ -7,7 +7,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import tn.enicarthage.eniconnect_backend.dtos.request.course.CreateCourseDto;
 import tn.enicarthage.eniconnect_backend.entities.Course;
+import tn.enicarthage.eniconnect_backend.entities.Survey;
+import tn.enicarthage.eniconnect_backend.exceptions.ResourceNotFoundException;
 import tn.enicarthage.eniconnect_backend.repositories.CourseRepository;
+import tn.enicarthage.eniconnect_backend.repositories.SurveyRepository;
 import tn.enicarthage.eniconnect_backend.services.CourseService;
 
 import java.util.List;
@@ -18,19 +21,18 @@ import java.util.List;
 public class CourseServiceImpl implements CourseService {
 
     private final CourseRepository courseRepository;
+    private final SurveyRepository surveyRepository;
 
     @Override
     public Course getCourseById(Long id) {
-        Course course = courseRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Course not found")
-        );
-        return course;
+        return courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
     }
 
     @Override
     public Course getCourseByCode(String code) {
         Course course = courseRepository.findByCode(code).orElseThrow(
-                () -> new RuntimeException("Course not found")
+                () -> new ResourceNotFoundException("Course", "code", code)
         );
         return course;
     }
@@ -55,13 +57,18 @@ public class CourseServiceImpl implements CourseService {
         return courseRepository.save(course);
     }
 
+    // In CourseServiceImpl
     @Override
+    @Transactional
     public void deleteCourse(Long id) {
-        Course course = courseRepository.findById(id).orElseThrow(
-                () -> new RuntimeException("Course not found")
-        );
-        courseRepository.delete(course);
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
 
+        // Remove course from all surveys that reference it
+        List<Survey> surveys = surveyRepository.findAllByTargetCoursesContaining(course);
+        surveys.forEach(survey -> survey.getTargetCourses().remove(course));
+
+        courseRepository.delete(course);
     }
 
 

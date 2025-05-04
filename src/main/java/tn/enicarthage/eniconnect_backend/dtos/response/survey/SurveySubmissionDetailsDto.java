@@ -3,7 +3,7 @@ package tn.enicarthage.eniconnect_backend.dtos.response.survey;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record SurveyResponseDetailsDto(
+public record SurveySubmissionDetailsDto(
         Long id,
         Long studentId,
         Long surveyId,

@@ -5,6 +5,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.entities.Survey;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
 
@@ -30,6 +31,7 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
             LocalDateTime now
     );
 
+
     // Check if survey exists for same criteria (avoid duplicates)
     boolean existsBySpecialityAndLevelAndSemesterAndSchoolYear(
             Speciality speciality,
@@ -49,5 +51,7 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
     @Query("SELECT s FROM Survey s LEFT JOIN FETCH s.targetCourses WHERE s.isPublished = true")
     List<Survey> findAllPublishedWithCourses();
 
-    Page<Survey> findAll(Pageable pageable) ;
+    Page<Survey> findAll(Pageable pageable);
+
+    List<Survey> findAllByTargetCoursesContaining(Course course);
 }

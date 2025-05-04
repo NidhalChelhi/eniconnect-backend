@@ -3,6 +3,7 @@ package tn.enicarthage.eniconnect_backend.mappers;
 import org.springframework.stereotype.Component;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDto;
 import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.entities.Survey;
 
@@ -24,7 +25,15 @@ public class SurveyMapper {
                 survey.getCloseDate(),
                 survey.getTargetCourses(),
                 survey.isActive(),
-                survey.getResponses(),
+                survey.getSubmissions().stream()
+                        .map(r -> new SurveySubmissionDto(
+                                r.getId(),
+                                r.getStudent().getId(),
+                                r.getOpenFeedback(),
+                                r.getSubmittedAt(),
+                                r.isSubmitted()
+                        ))
+                        .toList(),
                 survey.getCreatedAt()
         );
     }
@@ -40,7 +49,7 @@ public class SurveyMapper {
                 .openDate(dto.openDate())
                 .closeDate(dto.closeDate())
                 .targetCourses(courses)
-                .responses(List.of())
+                .submissions(List.of())
                 .build();
     }
 }

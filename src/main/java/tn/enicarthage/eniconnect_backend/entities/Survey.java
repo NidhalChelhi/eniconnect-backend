@@ -1,7 +1,10 @@
 package tn.enicarthage.eniconnect_backend.entities;
 
 import jakarta.persistence.*;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
 
 import java.time.LocalDateTime;
@@ -52,7 +55,7 @@ public class Survey {
     @Builder.Default
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @ManyToMany
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
             name = "survey_courses",
             joinColumns = @JoinColumn(name = "survey_id"),
@@ -60,8 +63,8 @@ public class Survey {
     )
     private Set<Course> targetCourses;
 
-    @OneToMany(mappedBy = "survey", cascade = CascadeType.REMOVE)
-    private List<SurveyResponse> responses;
+    @OneToMany(mappedBy = "survey", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<SurveySubmission> submissions;
 
     // Business logic methods
     public boolean isActive() {
@@ -80,10 +83,5 @@ public class Survey {
 
     public void unpublish() {
         this.isPublished = false;
-    }
-
-    public boolean isCompletedByStudent(Student student) {
-        return responses.stream()
-                .anyMatch(r -> r.getStudent().equals(student) && r.isSubmitted());
     }
 }

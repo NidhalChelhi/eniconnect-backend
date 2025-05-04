@@ -55,8 +55,8 @@ public class Student {
     @Column(name = "gender", nullable = false, length = 10)
     private String gender = "other";
 
-    @OneToMany(mappedBy = "student", cascade = CascadeType.REMOVE)
-    private List<SurveyResponse> responses;
+    @OneToMany(mappedBy = "student", cascade = CascadeType.REMOVE, orphanRemoval = true)
+    private List<SurveySubmission> submissions;
 
     // Profile fields (optional)
     @Column(name = "personal_email", length = 100)

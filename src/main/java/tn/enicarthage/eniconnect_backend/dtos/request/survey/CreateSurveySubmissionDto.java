@@ -1,10 +1,9 @@
 package tn.enicarthage.eniconnect_backend.dtos.request.survey;
 
 import jakarta.validation.constraints.*;
-
 import java.util.List;
 
-public record SurveyResponseDto(
+public record CreateSurveySubmissionDto(
         @NotNull Long surveyId,
         @NotEmpty List<CourseResponseDto> courseResponses,
         String openFeedback
