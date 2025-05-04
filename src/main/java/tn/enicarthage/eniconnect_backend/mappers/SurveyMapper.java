@@ -25,23 +25,10 @@ public class SurveyMapper {
                 survey.getOpenDate(),
                 survey.getCloseDate(),
                 survey.getTargetCourses(),
-                survey.isActive()) ;
+                survey.isActive(),
+                survey.getResponses()) ;
     }
-    public Survey toEntity(SurveyDto surveyDto) {
-        return new Survey(
-                surveyDto.id() ,
-                surveyDto.title() ,
-                surveyDto.speciality(),
-                surveyDto.semester() ,
-                surveyDto.level(),
-                surveyDto.schoolYear(),
-                surveyDto.isPublished(),
-                surveyDto.openDate(),
-                surveyDto.closeDate(),
-                LocalDateTime.now(),
-                surveyDto.courses(),
-                List.of());
-    }
+
     public Survey toEntity(CreateSurveyDto createSurveyDto, Set<Course> courses) {
         Survey survey = new Survey();
         survey.setTitle(createSurveyDto.title());

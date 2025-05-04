@@ -52,7 +52,6 @@ public class SurveyServiceImpl implements SurveyService {
                 createSurveyDto.semester()
         );
 
-
         Set<Course> coursesSet = new HashSet<>(courses);
 
         Survey survey = surveyMapper.toEntity(createSurveyDto, coursesSet);
