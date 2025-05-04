@@ -1,5 +1,6 @@
 package tn.enicarthage.eniconnect_backend.dtos.response.survey;
 
+import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
 
 import java.time.LocalDateTime;
@@ -15,7 +16,7 @@ public record SurveyDto(
         boolean isPublished,
         LocalDateTime openDate,
         LocalDateTime closeDate,
-        Set<Long> courseIds,
+        Set<Course> courseIds,
         boolean isActive
 ) {
 }
