@@ -39,10 +39,10 @@ public class SurveyMapper {
                 surveyDto.openDate(),
                 surveyDto.closeDate(),
                 LocalDateTime.now(),
-                surveyDto.courseIds(),
+                surveyDto.courses(),
                 List.of());
     }
-    public Survey toEntity(CreateSurveyDto createSurveyDto) {
+    public Survey toEntity(CreateSurveyDto createSurveyDto, Set<Course> courses) {
         Survey survey = new Survey();
         survey.setTitle(createSurveyDto.title());
         survey.setSpeciality(createSurveyDto.speciality());
@@ -53,7 +53,7 @@ public class SurveyMapper {
         survey.setOpenDate(createSurveyDto.openDate());
         survey.setCloseDate(createSurveyDto.closeDate());
         survey.setCreatedAt(LocalDateTime.now());
-        survey.setTargetCourses(Set.of());
+        survey.setTargetCourses(courses);
         survey.setResponses(List.of());
         return survey;
     }

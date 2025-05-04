@@ -16,7 +16,7 @@ public record SurveyDto(
         boolean isPublished,
         LocalDateTime openDate,
         LocalDateTime closeDate,
-        Set<Course> courseIds,
+        Set<Course> courses,
         boolean isActive
 ) {
 }
