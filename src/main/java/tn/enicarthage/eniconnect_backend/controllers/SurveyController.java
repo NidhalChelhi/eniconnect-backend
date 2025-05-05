@@ -15,6 +15,7 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmiss
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyStatsDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
@@ -111,6 +112,11 @@ public class SurveyController {
         );
 
         return ResponseEntity.ok(surveyService.getAllSurveys(filterParams, pageable));
+    }
+
+    @GetMapping("/stats/{surveyId}")
+    public ResponseEntity<SurveyStatsDto> getSurveyStats(@PathVariable Long surveyId) {
+        return ResponseEntity.ok(surveyService.getSurveyStats(surveyId));
     }
 
 }

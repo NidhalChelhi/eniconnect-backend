@@ -9,6 +9,7 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmiss
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyStatsDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
 
 import java.util.List;
@@ -41,4 +42,7 @@ public interface SurveyService {
     Long getEligibleStudentsCount(Long surveyId);
 
     Page<SurveyDto> getAllSurveys(SurveyFilterParams filterParams, Pageable pageable);
+
+    SurveyStatsDto getSurveyStats(Long surveyId);
+
 }

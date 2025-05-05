@@ -10,6 +10,7 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmiss
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyStatsDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
 import tn.enicarthage.eniconnect_backend.entities.*;
 import tn.enicarthage.eniconnect_backend.exceptions.AlreadyExistsException;
@@ -21,11 +22,9 @@ import tn.enicarthage.eniconnect_backend.repositories.*;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Service
 @RequiredArgsConstructor
@@ -282,6 +281,102 @@ public class SurveyServiceImpl implements SurveyService {
         );
 
         return surveys.map(surveyMapper::toDto);
+    }
+
+    // In SurveyServiceImpl.java
+    @Override
+    public SurveyStatsDto getSurveyStats(Long surveyId) {
+        Survey survey = surveyRepository.findByIdWithCourses(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", surveyId));
+
+        // Get eligible students count
+        long eligibleStudentsCount = getEligibleStudentsCount(surveyId);
+
+        // Calculate participation rate
+        long totalSubmissions = surveyResponseRepository.countBySurveyId(surveyId);
+        double participationRate = eligibleStudentsCount > 0 ?
+                (double) totalSubmissions / eligibleStudentsCount * 100 : 0;
+
+        // Get all questions in order
+        List<QuestionTemplate> questions = questionTemplateRepository.findAllOrdered();
+
+        // Calculate course statistics
+        List<SurveyStatsDto.CourseStatsDto> courseStats = survey.getTargetCourses().stream()
+                .map(course -> {
+                    // Calculate average rating per course
+                    double courseAverage = calculateCourseAverage(surveyId, course.getId());
+
+                    // Calculate average per question for this course
+                    Map<Integer, Double> questionAverages = IntStream.range(0, questions.size())
+                            .boxed()
+                            .collect(Collectors.toMap(
+                                    i -> i + 1, // question order (1-based)
+                                    i -> calculateQuestionAverage(surveyId, course.getId(), questions.get(i).getId())
+                            ));
+
+                    return new SurveyStatsDto.CourseStatsDto(
+                            course.getId(),
+                            course.getName(),
+                            course.getCode(),
+                            courseAverage,
+                            questionAverages
+                    );
+                })
+                .toList();
+
+        // Get question distribution (how many times each rating was selected across all questions)
+        Map<Integer, Integer> questionDistribution = calculateQuestionDistribution(surveyId);
+
+        // Collect all open feedback
+        List<String> openFeedback = survey.getSubmissions().stream()
+                .filter(sub -> sub.getOpenFeedback() != null && !sub.getOpenFeedback().isEmpty())
+                .map(SurveySubmission::getOpenFeedback)
+                .toList();
+
+        return new SurveyStatsDto(
+                (int) totalSubmissions,
+                (int) eligibleStudentsCount,
+                participationRate,
+                courseStats,
+                questionDistribution,
+                openFeedback
+        );
+    }
+
+    private double calculateCourseAverage(Long surveyId, Long courseId) {
+        List<Answer> answers = surveyResponseRepository.findAnswersBySurveyAndCourse(surveyId, courseId);
+        if (answers.isEmpty()) return 0;
+        return answers.stream()
+                .mapToInt(Answer::getRating)
+                .average()
+                .orElse(0);
+    }
+
+    private double calculateQuestionAverage(Long surveyId, Long courseId, Long questionId) {
+        List<Answer> answers = surveyResponseRepository.findAnswersBySurveyAndCourseAndQuestion(surveyId, courseId, questionId);
+        if (answers.isEmpty()) return 0;
+        return answers.stream()
+                .mapToInt(Answer::getRating)
+                .average()
+                .orElse(0);
+    }
+
+    private Map<Integer, Integer> calculateQuestionDistribution(Long surveyId) {
+        // Initialize with all possible ratings (1-4)
+        Map<Integer, Integer> distribution = IntStream.rangeClosed(1, 4)
+                .boxed()
+                .collect(Collectors.toMap(i -> i, i -> 0));
+
+        // Get all answers for this survey
+        List<Answer> answers = surveyResponseRepository.findAllBySurveyId(surveyId);
+
+        // Count each rating occurrence
+        answers.forEach(answer -> {
+            int rating = answer.getRating();
+            distribution.put(rating, distribution.get(rating) + 1);
+        });
+
+        return distribution;
     }
 
     private SurveySubmissionDetailsDto toResponseDetailsDto(SurveySubmission response) {
