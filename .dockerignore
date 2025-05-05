@@ -1,6 +1,8 @@
-.git
-.gitignore
-target/
-.idea
-*.iml
-.DS_Store
+**/target/
+**/.mvn/
+**/.git/
+**/.idea/
+**/*.iml
+**/Dockerfile
+**/docker-compose.yml
+**/README.md
