@@ -71,4 +71,19 @@ public interface SurveyRepository extends JpaRepository<Survey, Long> {
             @Param("isActive") Boolean isActive,
             Pageable pageable
     );
+
+    @Query("SELECT COUNT(s) FROM Survey s WHERE s.isPublished = true AND " +
+            "(s.openDate IS NULL OR s.openDate <= :now) AND " +
+            "(s.closeDate IS NULL OR s.closeDate >= :now)")
+    int countByIsPublishedAndOpenDateBeforeAndCloseDateAfter(
+            @Param("now") LocalDateTime now);
+
+    // Add these methods to SurveyRepository.java
+    @Query("SELECT COUNT(s) FROM Survey s WHERE s.isPublished = :isPublished")
+    int countByIsPublished(@Param("isPublished") boolean isPublished);
+
+    @Query("SELECT COUNT(s) FROM Survey s WHERE s.isPublished = true " +
+            "AND (s.openDate IS NULL OR s.openDate <= :now) " +
+            "AND (s.closeDate IS NULL OR s.closeDate >= :now)")
+    int countActiveSurveys(@Param("now") LocalDateTime now);
 }

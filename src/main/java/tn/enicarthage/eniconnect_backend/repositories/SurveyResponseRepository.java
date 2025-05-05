@@ -37,4 +37,10 @@ public interface SurveyResponseRepository extends JpaRepository<SurveySubmission
     List<Answer> findAllBySurveyId(@Param("surveyId") Long surveyId);
 
     Page<SurveySubmission> findBySurveyId(Long surveyId, Pageable pageable);
+
+
+
+    // Change this method in SurveyResponseRepository.java
+    @Query("SELECT COUNT(sr) FROM SurveySubmission sr WHERE EXTRACT(MONTH FROM sr.submittedAt) = :month")
+    int countBySubmittedAtMonth(@Param("month") int month);
 }
