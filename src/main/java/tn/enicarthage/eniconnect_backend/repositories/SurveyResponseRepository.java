@@ -26,4 +26,6 @@ public interface SurveyResponseRepository extends JpaRepository<SurveySubmission
 
     @Query("SELECT sr FROM SurveySubmission sr LEFT JOIN FETCH sr.answers WHERE sr.student.id = :studentId AND sr.survey.id = :surveyId")
     Optional<SurveySubmission> findByStudentIdAndSurveyId(Long studentId, Long surveyId);
+
+    long countBySurveyId(Long surveyId);
 }

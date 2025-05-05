@@ -11,6 +11,10 @@ import tn.enicarthage.eniconnect_backend.dtos.request.student.UpdateStudentProfi
 import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 import tn.enicarthage.eniconnect_backend.entities.Student;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
+import tn.enicarthage.eniconnect_backend.exceptions.AlreadyExistsException;
+import tn.enicarthage.eniconnect_backend.exceptions.FileProcessingException;
+import tn.enicarthage.eniconnect_backend.exceptions.InvalidDataException;
+import tn.enicarthage.eniconnect_backend.exceptions.ResourceNotFoundException;
 import tn.enicarthage.eniconnect_backend.mappers.StudentMapper;
 import tn.enicarthage.eniconnect_backend.repositories.StudentRepository;
 import tn.enicarthage.eniconnect_backend.services.StudentService;
@@ -33,21 +37,21 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public StudentDto getStudentById(Long id) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
         return studentMapper.toDto(student);
     }
 
     @Override
     public StudentDto getStudentByEmail(String email) {
         Student student = studentRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "email", email));
         return studentMapper.toDto(student);
     }
 
     @Override
-    public StudentDto getStudentByMatricule(String phoneNumber) {
-        Student student = studentRepository.findByMatricule(phoneNumber)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+    public StudentDto getStudentByMatricule(String matricule) {
+        Student student = studentRepository.findByMatricule(matricule)
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "matricule", matricule));
         return studentMapper.toDto(student);
     }
 
@@ -67,19 +71,26 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public StudentDto createStudent(CreateStudentDto studentCreateDTO) {
-        if (studentRepository.existsByEmail(studentCreateDTO.email()) || studentRepository.existsByMatricule(studentCreateDTO.matricule())) {
-            throw new RuntimeException("Student with ");
+        if (studentRepository.existsByEmail(studentCreateDTO.email())) {
+            throw new AlreadyExistsException("Student", "email", studentCreateDTO.email());
+        }
+        if (studentRepository.existsByMatricule(studentCreateDTO.matricule())) {
+            throw new AlreadyExistsException("Student", "matricule", studentCreateDTO.matricule());
         }
 
-        Student student = studentMapper.toEntity(studentCreateDTO);
-        Student savedStudent = studentRepository.save(student);
-        return studentMapper.toDto(savedStudent);
+        try {
+            Student student = studentMapper.toEntity(studentCreateDTO);
+            Student savedStudent = studentRepository.save(student);
+            return studentMapper.toDto(savedStudent);
+        } catch (Exception e) {
+            throw new InvalidDataException("Invalid student data: " + e.getMessage());
+        }
     }
 
     @Override
     public StudentDto updateStudentProfile(Long id, UpdateStudentProfileDto studentUpdateDTO) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
 
         studentMapper.updateEntityFromDto(student, studentUpdateDTO);
         Student updatedStudent = studentRepository.save(student);
@@ -88,14 +99,19 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public void deleteStudent(Long id) {
-        Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
-        studentRepository.delete(student);
+        if (!studentRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Student", "id", id);
+        }
+        studentRepository.deleteById(id);
     }
 
     @Override
     @Transactional
     public List<StudentDto> createStudentsFromCsv(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new FileProcessingException("CSV file is empty");
+        }
+
         try (InputStream is = file.getInputStream();
              BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
 
@@ -129,7 +145,7 @@ public class StudentServiceImpl implements StudentService {
                     .collect(Collectors.toList());
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse CSV file", e);
+            throw new FileProcessingException("Failed to process CSV file: " + e.getMessage(), e);
         }
     }
 }

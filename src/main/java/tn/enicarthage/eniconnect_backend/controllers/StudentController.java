@@ -1,11 +1,13 @@
 package tn.enicarthage.eniconnect_backend.controllers;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import tn.enicarthage.eniconnect_backend.dtos.request.student.CreateStudentDto;
@@ -19,6 +21,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/students")
 @RequiredArgsConstructor
+@Validated
 public class StudentController {
 
     private final StudentService studentService;
@@ -58,11 +61,10 @@ public class StudentController {
 
 
     @PostMapping
-    public ResponseEntity<StudentDto> createStudent(@RequestBody CreateStudentDto createStudentDto) {
+    public ResponseEntity<StudentDto> createStudent(@Valid @RequestBody CreateStudentDto createStudentDto) {
         StudentDto createdStudent = studentService.createStudent(createStudentDto);
         return ResponseEntity.status(HttpStatus.CREATED).body(createdStudent);
     }
-
 
     @PutMapping("/{id}")
     public ResponseEntity<StudentDto> updateStudent(

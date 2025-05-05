@@ -10,6 +10,9 @@ import tn.enicarthage.eniconnect_backend.dtos.request.course.CreateCourseDto;
 import tn.enicarthage.eniconnect_backend.entities.Course;
 import tn.enicarthage.eniconnect_backend.entities.Survey;
 import tn.enicarthage.eniconnect_backend.enums.Speciality;
+import tn.enicarthage.eniconnect_backend.exceptions.AlreadyExistsException;
+import tn.enicarthage.eniconnect_backend.exceptions.FileProcessingException;
+import tn.enicarthage.eniconnect_backend.exceptions.InvalidDataException;
 import tn.enicarthage.eniconnect_backend.exceptions.ResourceNotFoundException;
 import tn.enicarthage.eniconnect_backend.repositories.CourseRepository;
 import tn.enicarthage.eniconnect_backend.repositories.SurveyRepository;
@@ -38,10 +41,8 @@ public class CourseServiceImpl implements CourseService {
 
     @Override
     public Course getCourseByCode(String code) {
-        Course course = courseRepository.findByCode(code).orElseThrow(
-                () -> new ResourceNotFoundException("Course", "code", code)
-        );
-        return course;
+        return courseRepository.findByCode(code)
+                .orElseThrow(() -> new ResourceNotFoundException("Course", "code", code));
     }
 
     @Override
@@ -57,11 +58,15 @@ public class CourseServiceImpl implements CourseService {
     @Override
     public Course createCourse(CreateCourseDto createCourseDto) {
         if (courseRepository.existsByCode(createCourseDto.code())) {
-            throw new RuntimeException("Course code already exists");
+            throw new AlreadyExistsException("Course", "code", createCourseDto.code());
         }
 
-        Course course = toEntity(createCourseDto);
-        return courseRepository.save(course);
+        try {
+            Course course = toEntity(createCourseDto);
+            return courseRepository.save(course);
+        } catch (Exception e) {
+            throw new InvalidDataException("Invalid course data: " + e.getMessage());
+        }
     }
 
     // In CourseServiceImpl
@@ -81,6 +86,9 @@ public class CourseServiceImpl implements CourseService {
     @Override
     @Transactional
     public List<Course> createCoursesFromCsv(MultipartFile file) {
+        if (file.isEmpty()) {
+            throw new FileProcessingException("CSV file is empty");
+        }
         try (InputStream is = file.getInputStream();
              BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
 
@@ -110,7 +118,7 @@ public class CourseServiceImpl implements CourseService {
                     .collect(Collectors.toList());
 
         } catch (Exception e) {
-            throw new RuntimeException("Failed to parse CSV file", e);
+            throw new FileProcessingException("Failed to process CSV file: " + e.getMessage(), e);
         }
     }
 

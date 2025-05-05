@@ -8,12 +8,10 @@ public record CreateStudentDto(
         @NotBlank String firstName,
         @NotBlank String lastName,
         @Email @NotBlank String email,
-        @NotBlank Speciality speciality,
-        @NotBlank @Min(1) @Max(3) int currentLevel,
-        @NotBlank @Pattern(regexp = "[A-D]", message = "Groupe must be A, B, C, or D")
-        String groupe,
-        @NotBlank @Pattern(regexp = "\\d{4}/\\d{4}", message = "Invalid school year format")
-        String entrySchoolYear,
+        @NotNull Speciality speciality,
+        @Min(1) @Max(3) int currentLevel,
+        @NotBlank @Pattern(regexp = "[A-D]") String groupe,
+        @NotBlank @Pattern(regexp = "\\d{4}/\\d{4}") String entrySchoolYear,
         String gender
 ) {
 }

@@ -1,6 +1,8 @@
 package tn.enicarthage.eniconnect_backend.dtos.request.survey;
 
-import jakarta.validation.constraints.*;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+
 import java.util.List;
 
 public record CreateSurveySubmissionDto(
@@ -10,8 +12,7 @@ public record CreateSurveySubmissionDto(
 ) {
     public record CourseResponseDto(
             @NotNull Long courseId,
-            @Size(min = 8, max = 8, message = "Exactly 8 answers required")
-            @NotNull List<@Min(1) @Max(4) Integer> answers
+            @NotNull List<Integer> answers
     ) {
     }
 }

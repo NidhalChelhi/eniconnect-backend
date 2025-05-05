@@ -17,7 +17,7 @@ public interface StudentService {
 
     StudentDto getStudentByEmail(String email);
 
-    StudentDto getStudentByMatricule(String phoneNumber);
+    StudentDto getStudentByMatricule(String matricule);
 
     List<StudentDto> getAllStudents();
 

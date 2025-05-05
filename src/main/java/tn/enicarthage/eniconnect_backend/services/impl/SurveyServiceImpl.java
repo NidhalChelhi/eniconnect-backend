@@ -11,6 +11,9 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDt
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
 import tn.enicarthage.eniconnect_backend.entities.*;
+import tn.enicarthage.eniconnect_backend.exceptions.AlreadyExistsException;
+import tn.enicarthage.eniconnect_backend.exceptions.InvalidDataException;
+import tn.enicarthage.eniconnect_backend.exceptions.OperationNotAllowedException;
 import tn.enicarthage.eniconnect_backend.exceptions.ResourceNotFoundException;
 import tn.enicarthage.eniconnect_backend.mappers.SurveyMapper;
 import tn.enicarthage.eniconnect_backend.repositories.*;
@@ -37,7 +40,7 @@ public class SurveyServiceImpl implements SurveyService {
     public SurveyDto getSurveyById(Long id) {
         return surveyRepository.findById(id)
                 .map(surveyMapper::toDto)
-                .orElseThrow(() -> new RuntimeException("Survey not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", id));
     }
 
     @Override
@@ -55,28 +58,28 @@ public class SurveyServiceImpl implements SurveyService {
 
     @Override
     public SurveyDto createSurvey(CreateSurveyDto dto) {
-        // Check for duplicate surveys
         if (surveyRepository.existsBySpecialityAndLevelAndSemesterAndSchoolYear(
                 dto.speciality(), dto.level(), dto.semester(), dto.schoolYear())) {
-            throw new IllegalArgumentException("Survey already exists for these criteria");
+            throw new AlreadyExistsException("Survey", "criteria",
+                    String.format("%s-%s-%s-%s", dto.speciality(), dto.level(), dto.semester(), dto.schoolYear()));
         }
 
-        // Get related courses
         Set<Course> courses = new HashSet<>(courseRepository.findBySpecialityAndLevelAndSemester(
                 dto.speciality(), dto.level(), dto.semester()));
+
+        if (courses.isEmpty()) {
+            throw new InvalidDataException("No courses found for the given speciality, level and semester");
+        }
 
         Survey survey = surveyMapper.toEntity(dto, courses);
         return surveyMapper.toDto(surveyRepository.save(survey));
     }
 
-    // In SurveyServiceImpl
     @Override
     @Transactional
     public void deleteSurvey(Long id) {
         Survey survey = surveyRepository.findByIdWithCourses(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", id));
-
-        // Clear relationships before deletion
         survey.getTargetCourses().clear();
         surveyRepository.delete(survey);
     }
@@ -85,7 +88,11 @@ public class SurveyServiceImpl implements SurveyService {
     @Override
     public SurveyDto publishSurvey(Long id) {
         Survey survey = surveyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Survey not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", id));
+
+        if (survey.getTargetCourses().isEmpty()) {
+            throw new OperationNotAllowedException("Cannot publish survey with no courses");
+        }
 
         survey.publish();
         return surveyMapper.toDto(surveyRepository.save(survey));
@@ -94,7 +101,7 @@ public class SurveyServiceImpl implements SurveyService {
     @Override
     public SurveyDto unpublishSurvey(Long id) {
         Survey survey = surveyRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Survey not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", id));
 
         survey.unpublish();
         return surveyMapper.toDto(surveyRepository.save(survey));
@@ -103,24 +110,21 @@ public class SurveyServiceImpl implements SurveyService {
     @Override
     public SurveyDto updateSurveyDates(Long surveyId, UpdateSurveyDatesDto dto) {
         Survey survey = surveyRepository.findById(surveyId)
-                .orElseThrow(() -> new RuntimeException("Survey not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", surveyId));
 
-        // For published surveys, we only allow extending the close date
         if (survey.isPublished()) {
             if (dto.newOpenDate() != null) {
-                throw new IllegalArgumentException("Cannot change open date for published survey");
+                throw new OperationNotAllowedException("Cannot change open date for published survey");
             }
 
             if (dto.newCloseDate() != null) {
                 LocalDateTime now = LocalDateTime.now();
                 if (dto.newCloseDate().isBefore(now)) {
-                    throw new IllegalArgumentException("Close date must be in the future");
+                    throw new InvalidDataException("Close date must be in the future");
                 }
                 survey.setCloseDate(dto.newCloseDate());
             }
-        }
-        // For unpublished surveys, allow full date changes
-        else {
+        } else {
             survey.setOpenDate(dto.newOpenDate());
             survey.setCloseDate(dto.newCloseDate());
         }
@@ -131,23 +135,20 @@ public class SurveyServiceImpl implements SurveyService {
 
     @Override
     public SurveySubmissionDetailsDto submitSurveyResponse(Long surveyId, CreateSurveySubmissionDto createSurveySubmissionDto, Long studentId) {
-        // Validate student exists
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
-        // Validate survey exists and is active
         Survey survey = surveyRepository.findByIdWithCourses(surveyId)
-                .orElseThrow(() -> new RuntimeException("Survey not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", surveyId));
+
 
         if (!survey.isActive()) {
-            throw new IllegalStateException("Survey is not currently active");
+            throw new OperationNotAllowedException("Survey is not currently active");
         }
 
-        // Check if student already submitted
         if (surveyResponseRepository.existsByStudentAndSurvey(student, survey)) {
-            throw new IllegalStateException("Student already submitted this survey");
+            throw new OperationNotAllowedException("Student already submitted this survey");
         }
-
         // Validate all courses belong to the survey
         Set<Long> surveyCourseIds = survey.getTargetCourses().stream()
                 .map(Course::getId)
@@ -155,7 +156,7 @@ public class SurveyServiceImpl implements SurveyService {
 
         for (CreateSurveySubmissionDto.CourseResponseDto courseResponse : createSurveySubmissionDto.courseResponses()) {
             if (!surveyCourseIds.contains(courseResponse.courseId())) {
-                throw new IllegalArgumentException("Course does not belong to this survey");
+                throw new InvalidDataException("Course does not belong to this survey");
             }
         }
 
@@ -181,7 +182,9 @@ public class SurveyServiceImpl implements SurveyService {
                         .submission(response)
                         .question(questions.get(i))
                         .course(courseRepository.findById(courseResponse.courseId())
-                                .orElseThrow(() -> new RuntimeException("Course not found")))
+                                .orElseThrow(() -> new ResourceNotFoundException(
+                                        "Course", "id", courseResponse.courseId()
+                                )))
                         .rating(courseResponse.answers().get(i))
                         .build();
                 answers.add(answer);
@@ -197,14 +200,14 @@ public class SurveyServiceImpl implements SurveyService {
     @Override
     public SurveySubmissionDetailsDto getStudentResponseForSurvey(Long surveyId, Long studentId) {
         SurveySubmission response = surveyResponseRepository.findByStudentIdAndSurveyId(studentId, surveyId)
-                .orElseThrow(() -> new RuntimeException("Response not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("SurveySubmission", "surveyId and studentId", surveyId + "-" + studentId));
         return toResponseDetailsDto(response);
     }
 
     @Override
     public List<SurveyDto> getActiveSurveysForStudent(Long studentId) {
         Student student = studentRepository.findById(studentId)
-                .orElseThrow(() -> new RuntimeException("Student not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
         LocalDateTime now = LocalDateTime.now();
 
@@ -230,13 +233,36 @@ public class SurveyServiceImpl implements SurveyService {
         // Filter out surveys that the student has already submitted from survey submissions use existsByStudentAndSurvey
         surveys = surveys.stream()
                 .filter(survey -> !surveyResponseRepository.existsByStudentAndSurvey(student, survey))
-                .collect(Collectors.toList());
+                .toList();
 
 
         return surveys.stream()
                 .map(surveyMapper::toDto)
                 .toList();
     }
+
+    @Override
+    public Long getEligibleStudentsCount(Long surveyId) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", surveyId));
+
+        // Calculate the expected school years based on survey's school year and level
+        String[] parts = survey.getSchoolYear().split("/");
+        int startYear = Integer.parseInt(parts[0]);
+
+        List<String> schoolYears = new ArrayList<>();
+        for (int i = 0; i < survey.getLevel(); i++) {
+            int currentStart = startYear - i;
+            schoolYears.add(currentStart + "/" + (currentStart + 1));
+        }
+
+        return studentRepository.countBySpecialityAndCurrentLevelAndEntrySchoolYearIn(
+                survey.getSpeciality(),
+                survey.getLevel(),
+                schoolYears
+        );
+    }
+
 
     private SurveySubmissionDetailsDto toResponseDetailsDto(SurveySubmission response) {
         List<SurveySubmissionDetailsDto.AnswerDto> answerDtos = response.getAnswers().stream()

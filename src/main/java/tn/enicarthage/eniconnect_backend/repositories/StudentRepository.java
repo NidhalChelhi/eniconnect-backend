@@ -41,6 +41,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     // find by speciality
     List<Student> findBySpeciality(Speciality speciality);
 
-
+    long countBySpecialityAndCurrentLevelAndEntrySchoolYearIn(
+            Speciality speciality,
+            int currentLevel,
+            List<String> entrySchoolYears
+    );
 
 }

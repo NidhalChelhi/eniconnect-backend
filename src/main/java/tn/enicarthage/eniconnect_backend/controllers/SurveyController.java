@@ -1,10 +1,12 @@
 package tn.enicarthage.eniconnect_backend.controllers;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
@@ -18,6 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/surveys")
 @RequiredArgsConstructor
+@Validated
 public class SurveyController {
     private final SurveyService surveyService;
 
@@ -37,7 +40,7 @@ public class SurveyController {
     }
 
     @PostMapping
-    public ResponseEntity<SurveyDto> createSurvey(@RequestBody CreateSurveyDto dto) {
+    public ResponseEntity<SurveyDto> createSurvey(@Valid @RequestBody CreateSurveyDto dto) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(surveyService.createSurvey(dto));
     }
@@ -61,7 +64,7 @@ public class SurveyController {
     @PatchMapping("/{id}/dates")
     public ResponseEntity<SurveyDto> updateSurveyDates(
             @PathVariable Long id,
-            @RequestBody UpdateSurveyDatesDto dto) {
+            @Valid @RequestBody UpdateSurveyDatesDto dto) {
         return ResponseEntity.ok(surveyService.updateSurveyDates(id, dto));
     }
 
@@ -69,7 +72,7 @@ public class SurveyController {
     @PostMapping("/{id}/respond/{studentId}")
     public ResponseEntity<SurveySubmissionDetailsDto> submitSurveyResponse(
             @PathVariable("id") Long id,
-            @RequestBody CreateSurveySubmissionDto createSurveySubmissionDto,
+            @Valid @RequestBody CreateSurveySubmissionDto createSurveySubmissionDto,
             @PathVariable("studentId") Long studentId) {
         return ResponseEntity.ok(surveyService.submitSurveyResponse(id, createSurveySubmissionDto, studentId));
     }
@@ -85,6 +88,12 @@ public class SurveyController {
     public ResponseEntity<List<SurveyDto>> getActiveSurveysForStudent(
             @PathVariable("studentId") Long studentId) {
         return ResponseEntity.ok(surveyService.getActiveSurveysForStudent(studentId));
+    }
+
+
+    @GetMapping("/{surveyId}/eligible-students")
+    public ResponseEntity<Long> getEligibleStudentsCount(@PathVariable Long surveyId) {
+        return ResponseEntity.ok(surveyService.getEligibleStudentsCount(surveyId));
     }
 
 

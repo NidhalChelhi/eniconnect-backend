@@ -1,9 +1,11 @@
 package tn.enicarthage.eniconnect_backend.controllers;
 
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import tn.enicarthage.eniconnect_backend.dtos.request.question.QuestionTemplateDto;
 import tn.enicarthage.eniconnect_backend.entities.QuestionTemplate;
@@ -14,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/questions")
 @RequiredArgsConstructor
+@Validated
 public class QuestionController {
     private final QuestionService questionService;
 
@@ -24,13 +27,13 @@ public class QuestionController {
     }
 
     @PostMapping()
-    public ResponseEntity<QuestionTemplate> createQuestion(@RequestBody QuestionTemplateDto question) {
+    public ResponseEntity<QuestionTemplate> createQuestion(@Valid @RequestBody QuestionTemplateDto question) {
         QuestionTemplate Savedquestion = questionService.createQuestion(question);
         return ResponseEntity.status(HttpStatus.CREATED).body(Savedquestion);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<QuestionTemplate> updateQuestion(@RequestBody QuestionTemplateDto question, @PathVariable int id) {
+    public ResponseEntity<QuestionTemplate> updateQuestion(@Valid @RequestBody QuestionTemplateDto question, @PathVariable int id) {
         QuestionTemplate updatedQuestion = questionService.updateeQuestionById(id, question);
         return ResponseEntity.status(HttpStatus.CREATED).body(updatedQuestion);
     }

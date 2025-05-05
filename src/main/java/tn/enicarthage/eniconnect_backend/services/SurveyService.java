@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
 
@@ -36,4 +37,7 @@ public interface SurveyService {
     SurveySubmissionDetailsDto getStudentResponseForSurvey(Long surveyId, Long studentId);
 
     List<SurveyDto> getActiveSurveysForStudent(Long studentId);
+
+    Long getEligibleStudentsCount(Long surveyId);
+
 }
