@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
@@ -64,15 +65,20 @@ public class SurveyServiceImpl implements SurveyService {
                     String.format("%s-%s-%s-%s", dto.speciality(), dto.level(), dto.semester(), dto.schoolYear()));
         }
 
-        Set<Course> courses = new HashSet<>(courseRepository.findBySpecialityAndLevelAndSemester(
-                dto.speciality(), dto.level(), dto.semester()));
+        // Get fresh managed Course entities
+        List<Course> courses = courseRepository.findBySpecialityAndLevelAndSemester(
+                dto.speciality(), dto.level(), dto.semester());
 
         if (courses.isEmpty()) {
             throw new InvalidDataException("No courses found for the given speciality, level and semester");
         }
 
-        Survey survey = surveyMapper.toEntity(dto, courses);
-        return surveyMapper.toDto(surveyRepository.save(survey));
+        // Convert to Set of managed entities
+        Set<Course> managedCourses = new HashSet<>(courses);
+
+        Survey survey = surveyMapper.toEntity(dto, managedCourses);
+        Survey savedSurvey = surveyRepository.save(survey);
+        return surveyMapper.toDto(savedSurvey);
     }
 
     @Override
@@ -263,6 +269,20 @@ public class SurveyServiceImpl implements SurveyService {
         );
     }
 
+    @Override
+    public Page<SurveyDto> getAllSurveys(SurveyFilterParams filterParams, Pageable pageable) {
+        Page<Survey> surveys = surveyRepository.findAllWithFilters(
+                filterParams.speciality(),
+                filterParams.schoolYear(),
+                filterParams.level(),
+                filterParams.semester(),
+                filterParams.isPublished(),
+                filterParams.isActive(),
+                pageable
+        );
+
+        return surveys.map(surveyMapper::toDto);
+    }
 
     private SurveySubmissionDetailsDto toResponseDetailsDto(SurveySubmission response) {
         List<SurveySubmissionDetailsDto.AnswerDto> answerDtos = response.getAnswers().stream()

@@ -4,15 +4,19 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
+import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
+import tn.enicarthage.eniconnect_backend.enums.Speciality;
 import tn.enicarthage.eniconnect_backend.services.SurveyService;
 
 import java.util.List;
@@ -27,11 +31,6 @@ public class SurveyController {
     @GetMapping
     public ResponseEntity<List<SurveyDto>> getAllSurveys() {
         return ResponseEntity.ok(surveyService.getAllSurveys());
-    }
-
-    @GetMapping("/paged")
-    public ResponseEntity<Page<SurveyDto>> getAllSurveys(Pageable pageable) {
-        return ResponseEntity.ok(surveyService.getAllSurveys(pageable));
     }
 
     @GetMapping("/{id}")
@@ -96,5 +95,22 @@ public class SurveyController {
         return ResponseEntity.ok(surveyService.getEligibleStudentsCount(surveyId));
     }
 
+
+    @GetMapping("/paged")
+    public ResponseEntity<Page<SurveyDto>> getAllSurveysPaged(
+            @RequestParam(required = false) Speciality speciality,
+            @RequestParam(required = false) String schoolYear,
+            @RequestParam(required = false) Integer level,
+            @RequestParam(required = false) Integer semester,
+            @RequestParam(required = false) Boolean isPublished,
+            @RequestParam(required = false) Boolean isActive,
+            @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+
+        SurveyFilterParams filterParams = new SurveyFilterParams(
+                speciality, schoolYear, level, semester, isPublished, isActive
+        );
+
+        return ResponseEntity.ok(surveyService.getAllSurveys(filterParams, pageable));
+    }
 
 }
