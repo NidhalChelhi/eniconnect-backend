@@ -8,6 +8,7 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyStatsDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
@@ -45,4 +46,7 @@ public interface SurveyService {
 
     SurveyStatsDto getSurveyStats(Long surveyId);
 
+    Page<StudentDto> getEligibleStudents(Long surveyId, Pageable pageable);
+
+    Page<SurveySubmissionDetailsDto> getSurveySubmissions(Long surveyId, Pageable pageable);
 }

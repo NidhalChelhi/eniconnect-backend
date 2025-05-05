@@ -14,6 +14,7 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyStatsDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
@@ -117,6 +118,20 @@ public class SurveyController {
     @GetMapping("/stats/{surveyId}")
     public ResponseEntity<SurveyStatsDto> getSurveyStats(@PathVariable Long surveyId) {
         return ResponseEntity.ok(surveyService.getSurveyStats(surveyId));
+    }
+
+    @GetMapping("/{surveyId}/eligible-students/list")
+    public ResponseEntity<Page<StudentDto>> getEligibleStudentsList(
+            @PathVariable Long surveyId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(surveyService.getEligibleStudents(surveyId, pageable));
+    }
+
+    @GetMapping("/{surveyId}/submissions")
+    public ResponseEntity<Page<SurveySubmissionDetailsDto>> getSurveySubmissions(
+            @PathVariable Long surveyId,
+            @PageableDefault(size = 10, sort = "submittedAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(surveyService.getSurveySubmissions(surveyId, pageable));
     }
 
 }

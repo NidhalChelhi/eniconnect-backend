@@ -9,6 +9,7 @@ import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.CreateSurveySubmissionDto;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.SurveyFilterParams;
 import tn.enicarthage.eniconnect_backend.dtos.request.survey.UpdateSurveyDatesDto;
+import tn.enicarthage.eniconnect_backend.dtos.response.student.StudentDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveyStatsDto;
 import tn.enicarthage.eniconnect_backend.dtos.response.survey.SurveySubmissionDetailsDto;
@@ -377,6 +378,57 @@ public class SurveyServiceImpl implements SurveyService {
         });
 
         return distribution;
+    }
+
+
+    @Override
+    public Page<StudentDto> getEligibleStudents(Long surveyId, Pageable pageable) {
+        Survey survey = surveyRepository.findById(surveyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Survey", "id", surveyId));
+
+        // Calculate the expected school years based on survey's school year and level
+        String[] parts = survey.getSchoolYear().split("/");
+        int startYear = Integer.parseInt(parts[0]);
+
+        List<String> schoolYears = new ArrayList<>();
+        for (int i = 0; i < survey.getLevel(); i++) {
+            int currentStart = startYear - i;
+            schoolYears.add(currentStart + "/" + (currentStart + 1));
+        }
+
+        Page<Student> students = studentRepository.findBySpecialityAndCurrentLevelAndEntrySchoolYearIn(
+                survey.getSpeciality(),
+                survey.getLevel(),
+                schoolYears,
+                pageable
+        );
+
+        return students.map(student -> new StudentDto(
+                student.getId(),
+                student.getMatricule(),
+                student.getFirstName(),
+                student.getLastName(),
+                student.getEmail(),
+                student.getSpeciality(),
+                student.getCurrentLevel(),
+                student.getGroupe(),
+                student.getEntrySchoolYear(),
+                student.getGraduationSchoolYear(),
+                student.getGender(),
+                student.getPersonalEmail(),
+                student.getPhoneNumber(),
+                student.getBio(),
+                student.getLinkedinUrl(),
+                student.getGithubUrl(),
+                student.getProfilePictureUrl(),
+                student.getCreatedAt()
+        ));
+    }
+
+    @Override
+    public Page<SurveySubmissionDetailsDto> getSurveySubmissions(Long surveyId, Pageable pageable) {
+        Page<SurveySubmission> submissions = surveyResponseRepository.findBySurveyId(surveyId, pageable);
+        return submissions.map(this::toResponseDetailsDto);
     }
 
     private SurveySubmissionDetailsDto toResponseDetailsDto(SurveySubmission response) {
